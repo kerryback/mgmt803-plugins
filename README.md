@@ -1,6 +1,6 @@
 # mgmt803-plugins
 
-A Claude Code plugin marketplace for MGMT 803 at Rice Business. Twenty-two
+A Claude Code plugin marketplace for MGMT 803 at Rice Business. Twenty-three
 plugins: scheduling and planning agents, market-data briefs, a job scout,
 teaching tools, app scaffolds, and a handful of browser games — most of them
 built by the class.
@@ -62,6 +62,7 @@ themselves.
 | `sullivan-family-activities@mgmt803` | enjolisunshine | A local family organizer: FastAPI and SQLite behind a shared calendar, tasks and chores with point rewards and turn rotation, a prize shop, maintenance reminders, kid mode, a phone-link QR code, and a PIN-protected settings area. |
 | `finance-app@mgmt803` | Jack Beathard | A loan payment calculator: FastAPI backend computing monthly payment, total paid and total interest from amount, rate and term, with a matching form. |
 | `density-weight-converter@mgmt803` | HighLordLangford | A density-to-weight converter: g/cm³ and ft³ to pounds, with an optional tons-per-acre mode from thickness and acreage. |
+| `childrens-book-generator@mgmt803` | John Poremski | A children's picture book generator: FastAPI app that turns a character, art style, and moral of the story into plot beats plus a matching illustration per page, kept consistent across pages, with an optional rhyming mode and a PDF download. |
 
 ## Games and chat
 

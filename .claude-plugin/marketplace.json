@@ -11,6 +11,11 @@
       "description": "Plan your week and edit Google Calendar across several calendars (work, school, a side job, personal) from rules you set once in a private profile on your computer. Keeps anything that isn't work off the work calendar, including the attendee trap that copies events onto your primary calendar; plans around work hours the calendar doesn't show; protects rest; proposes before editing; and checks its edits afterwards."
     },
     {
+      "name": "childrens-book-generator",
+      "source": "./JohnPoremski/childrens-book-generator",
+      "description": "Scaffold and run a FastAPI app that turns a main character, art style, and moral of the story into a short illustrated children's picture book -- plot beats plus a matching illustration per page, kept consistent by chaining the first illustration back in as a reference for later pages, with an optional rhyming mode. Books save, reopen, and download as a PDF. Uses OpenRouter for both text and images; illustrations need OpenRouter account credits."
+    },
+    {
       "name": "countdown",
       "source": "./jessica-george/countdown",
       "description": "A countdown page with no fixed look: type an occasion and a date, and Claude designs the whole page live — colors, an emoji, a font and a particle effect (snow, confetti, floating, sparkle) that fit the occasion, using the real colors of a named school, team, brand or holiday when it recognizes one. Requires an ANTHROPIC_API_KEY."
