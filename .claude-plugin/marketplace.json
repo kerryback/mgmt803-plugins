@@ -69,6 +69,11 @@
       "name": "sullivan-family-activities",
       "source": "./enjolisunshine/sullivan-family-activities",
       "description": "Scaffold a local family organizer web app: FastAPI + SQLite backend with a shared calendar, tasks and chores (point rewards, sticker charts, turn rotation for kids), a prize shop, home maintenance reminders, a PIN-protected settings area, kid mode, and a QR code for linking a phone on the same Wi-Fi."
+    },
+    {
+      "name": "wolverine-brief",
+      "source": "./Cspiteri33/wolverine-brief",
+      "description": "A weekly cross-asset market brief in the voice of Wolverine (Logan) from the X-Men. Pulls the last six trading days of prices for stocks (SPY), Treasuries (IEF), the US dollar (UUP), gold (GLD) and oil (USO) from Yahoo Finance, then gives a short, blunt take on the biggest moves, how the markets moved against each other, and what to watch. Every number comes from the fetched data. No API key needed; the first run sets up a private Python environment at ~/.wolverine-brief/venv."
     }
   ]
 }
