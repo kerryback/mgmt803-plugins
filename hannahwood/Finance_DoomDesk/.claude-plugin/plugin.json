@@ -1,0 +1,8 @@
+{
+  "name": "doom-desk",
+  "description": "Launch Doom Desk, a local FastAPI market-recap app: it pulls the last six trading days for SPY, IEF, UUP, GLD and USO from Yahoo Finance, computes the returns, and has Claude narrate them as pessimistically as possible. Cites only the real numbers. Needs your own Anthropic API key.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Hannah Wood"
+  }
+}

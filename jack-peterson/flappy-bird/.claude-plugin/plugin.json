@@ -1,0 +1,8 @@
+{
+  "name": "flappy-bird",
+  "description": "Launch Sammy the Owl, a Flappy-Bird-style tap-to-fly game in Rice blue, served by a local FastAPI app. One Python file, no build step.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jack Peterson"
+  }
+}

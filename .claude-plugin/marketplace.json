@@ -3,7 +3,7 @@
   "owner": {
     "name": "Kerry Back"
   },
-  "description": "Plugins for MGMT 803: a draft critique, elegant PDFs, the shoji slide theme, Smithers, and narrated slide videos.",
+  "description": "Plugins built by the MGMT 803 class at Rice Business, plus the instructor's own. Scheduling and planning agents, market-data briefs, a job scout, teaching tools, app scaffolds, and a handful of browser games.",
   "plugins": [
     {
       "name": "calendar-keeper",
@@ -11,9 +11,9 @@
       "description": "Plan your week and edit Google Calendar across several calendars (work, school, a side job, personal) from rules you set once in a private profile on your computer. Keeps anything that isn't work off the work calendar, including the attendee trap that copies events onto your primary calendar; plans around work hours the calendar doesn't show; protects rest; proposes before editing; and checks its edits afterwards."
     },
     {
-      "name": "syllabus-to-trello",
-      "source": "./bb151-pixel/syllabus-to-trello",
-      "description": "Turn course syllabi into a Trello card plan and matching Google Calendar reminders. Converts relative deadlines into real dates from confirmed anchors, sets personal targets ahead of the official deadlines, flags missing or stale dates, and proposes every card for your review before creating anything. After approval it creates the cards and calendar markers, verifies both, and writes a handoff summary. Your board and calendar details stay in a private profile on your computer."
+      "name": "countdown",
+      "source": "./jessica-george/countdown",
+      "description": "A countdown page with no fixed look: type an occasion and a date, and Claude designs the whole page live — colors, an emoji, a font and a particle effect (snow, confetti, floating, sparkle) that fit the occasion, using the real colors of a named school, team, brand or holiday when it recognizes one. Requires an ANTHROPIC_API_KEY."
     },
     {
       "name": "critique",
@@ -21,24 +21,24 @@
       "description": "Critique work Claude produced and say what to do about it. Parallel reviewer agents -- correctness traced back to the files that produced each number, clarity, a devil's advocate that reads the code rather than the prose, and a referee lane for academic papers that hands off to econ-review when it is installed. Every finding must carry located evidence, a consequence specific to this work, a proportionate repair, and a condition that would defeat it; Claude then argues against its own reviewers before showing you anything. Delivers an HTML guide that leads with the verdict and lays out the alternative paths forward -- narrow the claim, run one decisive check, reframe, redesign, or ship -- as choices with costs, not as a checklist. Heavyweight: it fans out multiple subagents."
     },
     {
+      "name": "density-weight-converter",
+      "source": "./HighLordLangford/density-weight-converter",
+      "description": "Scaffold a density-to-weight unit converter web app: a FastAPI backend and form UI that convert a density (g/cm3) and a volume (ft3) into a weight in pounds, with an optional tons-per-acre mode from a thickness and an acreage."
+    },
+    {
+      "name": "doom-desk",
+      "source": "./hannahwood/Finance_DoomDesk",
+      "description": "Launch Doom Desk, a local FastAPI market-recap app: it pulls the last six trading days for SPY, IEF, UUP, GLD and USO from Yahoo Finance, computes the returns, and has Claude narrate them as pessimistically as possible. Cites only the real numbers. Needs your own Anthropic API key."
+    },
+    {
       "name": "elegant-pdf",
       "source": "./kerryback/elegant-pdf",
-      "description": "Create elegant, branded documents from a small HTML design system rendered to PDF or image with headless Chrome \u2014 one-page flyers/announcements (2x JPEG or clickable PDF) and multi-page programs, reports, and handbooks (clickable PDF with cover, running footer, and page numbers). Default palette is Rice Business navy + gold; recolor by editing one block."
+      "description": "Create elegant, branded documents from a small HTML design system rendered to PDF or image with headless Chrome — one-page flyers/announcements (2x JPEG or clickable PDF) and multi-page programs, reports, and handbooks (clickable PDF with cover, running footer, and page numbers). Default palette is Rice Business navy + gold; recolor by editing one block."
     },
     {
-      "name": "shoji",
-      "source": "./kerryback/shoji",
-      "description": "A Quarto reveal.js slide theme in plum, pale gray and dusty blue, drawn from the Shoji PowerPoint design: 4px rules, a shallow title band, a narrow seam and tight margins, set at 28px on a 1280\u00d7720 canvas, with cards, callouts, stats, numbered steps, compared columns and half-bleed picture layouts. Suits text- and code-heavy decks."
-    },
-    {
-      "name": "smithers",
-      "source": "./kerryback/smithers",
-      "description": "A personal email and calendar desk: your inbox split into what needs a reply, a 7-day calendar with multi-select delete, tasks, and a Compose tab. Claude Code reads your Gmail and Calendar through a local connector, writes a fresh overview of what\u2019s ahead for the next seven days every time the app is opened, and parks drafted replies in Compose \u2014 you review and press Send. Claude never sends mail and never deletes events."
-    },
-    {
-      "name": "voiceover",
-      "source": "./kerryback/voiceover",
-      "description": "Turn a slide deck into a narrated MP4 video plus a transcript. Give it the PDF of your slides \u2014 named on the command line or uploaded in the app \u2014 and Claude writes the narration; a local app shows each slide beside its script, where you edit it, pick an ElevenLabs voice, and generate. The MP4 + transcript are saved to the project folder."
+      "name": "f1-racer",
+      "source": "./jack-peterson/f1-racer",
+      "description": "Launch F1 Racer, a browser racing game served by a local FastAPI app. A single Python file holds the server and the whole game page, so there is nothing to build."
     },
     {
       "name": "finance-app",
@@ -46,19 +46,44 @@
       "description": "Scaffold a loan payment calculator web app: FastAPI backend computing monthly payment, total paid, and total interest from loan amount, rate, and term, with a matching form UI."
     },
     {
+      "name": "flappy-bird",
+      "source": "./jack-peterson/flappy-bird",
+      "description": "Launch Sammy the Owl, a Flappy-Bird-style tap-to-fly game in Rice blue, served by a local FastAPI app. One Python file, no build step."
+    },
+    {
       "name": "job-scout",
       "source": "./bazingasc/job-scout",
       "description": "Daily job-posting scout. Builds a profile from your resume and target jobs, searches current postings, scores each against your background, emails a digest of the best matches with key posting data, and recommends specific resume changes to compete better. Personal data stays in ~/job-scout/, never in the plugin."
     },
     {
-      "name": "countdown",
-      "source": "./jessica-george/countdown",
-      "description": "A countdown page with no fixed look: type an occasion and a date, and Claude designs the whole page live \u2014 colors, an emoji, a font and a particle effect (snow, confetti, floating, sparkle) that fit the occasion, using the real colors of a named school, team, brand or holiday when it recognizes one. Requires an ANTHROPIC_API_KEY."
+      "name": "lizard-leap",
+      "source": "./hannahwood/game_lizardleap",
+      "description": "Launch Lizard Leap, a pixel-art desert runner served by a local FastAPI app: jump the rocks, duck the birds for a bonus, eat berries for a score multiplier. Also builds a standalone HTML or Windows exe."
     },
     {
-      "name": "density-weight-converter",
-      "source": "./HighLordLangford/density-weight-converter",
-      "description": "Scaffold a density-to-weight unit converter web app: a FastAPI backend and form UI that convert a density (g/cm3) and a volume (ft3) into a weight in pounds, with an optional tons-per-acre mode from a thickness and an acreage."
+      "name": "mario",
+      "source": "./husaaa17/mario",
+      "description": "Launch World 1-1, a side-scrolling platformer served by a local FastAPI app. The whole game page is inlined in one Python file."
+    },
+    {
+      "name": "math-atelier",
+      "source": "./jennifer-lane/math-atelier",
+      "description": "Launch The Math Atelier, a self-contained browser app for timed math practice. A single HTML file with no dependencies and no build step."
+    },
+    {
+      "name": "penguoom",
+      "source": "./tfensign/Penguoom",
+      "description": "Launch Penguoom, a Doom-style first-person shooter starring a penguin across ten winter sectors. A single self-contained HTML file: canvas raycaster, Web Audio sound and music, no build step and no dependencies."
+    },
+    {
+      "name": "shoji",
+      "source": "./kerryback/shoji",
+      "description": "A Quarto reveal.js slide theme in plum, pale gray and dusty blue, drawn from the Shoji PowerPoint design: 4px rules, a shallow title band, a narrow seam and tight margins, set at 28px on a 1280×720 canvas, with cards, callouts, stats, numbered steps, compared columns and half-bleed picture layouts. Suits text- and code-heavy decks."
+    },
+    {
+      "name": "smithers",
+      "source": "./kerryback/smithers",
+      "description": "A personal email and calendar desk: your inbox split into what needs a reply, a 7-day calendar with multi-select delete, tasks, and a Compose tab. Claude Code reads your Gmail and Calendar through a local connector, writes a fresh overview of what’s ahead for the next seven days every time the app is opened, and parks drafted replies in Compose — you review and press Send. Claude never sends mail and never deletes events."
     },
     {
       "name": "sn-lab",
@@ -66,9 +91,24 @@
       "description": "An interactive local app that animates SN1 and SN2 nucleophilic substitution mechanisms. Pick a substrate, nucleophile, and solvent from a curated textbook set (or let the app suggest an example), and it predicts which mechanism dominates -- with the reasoning -- then animates the backside attack and inversion of SN2 or the carbocation intermediate of SN1, alongside a reaction-energy diagram."
     },
     {
+      "name": "snark-bot",
+      "source": "./hannahwood/Chat_SnarkBot",
+      "description": "Launch Snark Bot, a local FastAPI chat app powered by Claude that answers your question and roasts you while doing it. Needs your own Anthropic API key; it prompts for one on first run and saves it to a gitignored env.txt."
+    },
+    {
       "name": "sullivan-family-activities",
       "source": "./enjolisunshine/sullivan-family-activities",
       "description": "Scaffold a local family organizer web app: FastAPI + SQLite backend with a shared calendar, tasks and chores (point rewards, sticker charts, turn rotation for kids), a prize shop, home maintenance reminders, a PIN-protected settings area, kid mode, and a QR code for linking a phone on the same Wi-Fi."
+    },
+    {
+      "name": "syllabus-to-trello",
+      "source": "./bb151-pixel/syllabus-to-trello",
+      "description": "Turn course syllabi into a Trello card plan and matching Google Calendar reminders. Converts relative deadlines into real dates from confirmed anchors, sets personal targets ahead of the official deadlines, flags missing or stale dates, and proposes every card for your review before creating anything. After approval it creates the cards and calendar markers, verifies both, and writes a handoff summary. Your board and calendar details stay in a private profile on your computer."
+    },
+    {
+      "name": "voiceover",
+      "source": "./kerryback/voiceover",
+      "description": "Turn a slide deck into a narrated MP4 video plus a transcript. Give it the PDF of your slides — named on the command line or uploaded in the app — and Claude writes the narration; a local app shows each slide beside its script, where you edit it, pick an ElevenLabs voice, and generate. The MP4 + transcript are saved to the project folder."
     },
     {
       "name": "wolverine-brief",

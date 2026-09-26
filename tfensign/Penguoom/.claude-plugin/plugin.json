@@ -1,0 +1,8 @@
+{
+  "name": "penguoom",
+  "description": "Launch Penguoom, a Doom-style first-person shooter starring a penguin across ten winter sectors. A single self-contained HTML file: canvas raycaster, Web Audio sound and music, no build step and no dependencies.",
+  "version": "1.0.0",
+  "author": {
+    "name": "tfensign"
+  }
+}

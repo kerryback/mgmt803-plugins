@@ -1,0 +1,8 @@
+{
+  "name": "snark-bot",
+  "description": "Launch Snark Bot, a local FastAPI chat app powered by Claude that answers your question and roasts you while doing it. Needs your own Anthropic API key; it prompts for one on first run and saves it to a gitignored env.txt.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Hannah Wood"
+  }
+}

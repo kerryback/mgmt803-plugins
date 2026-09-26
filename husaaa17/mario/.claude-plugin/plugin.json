@@ -1,0 +1,8 @@
+{
+  "name": "mario",
+  "description": "Launch World 1-1, a side-scrolling platformer served by a local FastAPI app. The whole game page is inlined in one Python file.",
+  "version": "0.1.0",
+  "author": {
+    "name": "husaaa17"
+  }
+}

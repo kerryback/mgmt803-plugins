@@ -1,0 +1,8 @@
+{
+  "name": "math-atelier",
+  "description": "Launch The Math Atelier, a self-contained browser app for timed math practice. A single HTML file with no dependencies and no build step.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Jennifer Lane"
+  }
+}
