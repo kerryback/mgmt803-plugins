@@ -37,10 +37,17 @@
   body { margin:0; min-height:100vh; display:grid; place-items:center; padding:16px;
          background:var(--bg); color:var(--text); font:16px/1.5 system-ui, sans-serif; }
   .wrap { width:100%; max-width:760px; }
-  .bar { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+  .bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
   h1 { margin:0; font-size:1.25rem; }
+  .right { display:flex; align-items:center; gap:12px; }
   .scores { font-variant-numeric: tabular-nums; color:var(--muted); }
   .scores strong { color:var(--text); }
+  .mute { display:grid; place-items:center; width:34px; height:34px; padding:0; cursor:pointer;
+          background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:8px; }
+  .mute:hover { border-color:var(--muted); }
+  .mute svg { width:20px; height:20px; }
+  .mute .off, .mute[aria-pressed="true"] .on { display:none; }
+  .mute[aria-pressed="true"] .off { display:block; }
   canvas { display:block; width:100%; aspect-ratio: 3 / 1; border:1px solid var(--line);
            border-radius:14px; image-rendering: pixelated; }
   .hint { margin-top:10px; font-size:.85rem; color:var(--muted); text-align:center; }
@@ -52,10 +59,20 @@
 <main class="wrap">
   <div class="bar">
     <h1>Lizard Leap</h1>
-    <div class="scores">Score <strong id="score">0</strong> · Best <strong id="best">0</strong></div>
+    <div class="right">
+      <div class="scores">Score <strong id="score">0</strong> · Best <strong id="best">0</strong></div>
+      <button class="mute" id="mute" type="button" aria-pressed="false" aria-label="Mute sound (M)" title="Mute sound (M)">
+        <svg class="on" viewBox="0 0 20 20" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true">
+          <path d="M2 7h4l5-4v14l-5-4H2z"/><path d="M13 7h2v6h-2zM16 5h2v10h-2z"/>
+        </svg>
+        <svg class="off" viewBox="0 0 20 20" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true">
+          <path d="M2 7h4l5-4v14l-5-4H2z"/><path d="M13 7h2v2h-2zM15 9h2v2h-2zM17 7h2v2h-2zM13 11h2v2h-2zM17 11h2v2h-2z"/>
+        </svg>
+      </button>
+    </div>
   </div>
   <canvas id="game" width="900" height="300"></canvas>
-  <p class="hint"><kbd>Space</kbd> jump · <kbd>↓</kbd>/<kbd>S</kbd> duck · grab berries for a stacking score multiplier<br>
+  <p class="hint"><kbd>Space</kbd> jump · <kbd>↓</kbd>/<kbd>S</kbd> duck · <kbd>M</kbd> mute · grab berries for a stacking score multiplier<br>
     Duck under birds instead of jumping them for bonus points<br>
     On a phone: tap the top half to jump, hold the bottom half to duck<br>
     Browser in dark mode? You get a nighttime desert. Light mode gets a daytime desert.</p>
@@ -306,9 +323,180 @@ function drawScenery(t) {
   }
 }
 
+// ---------- sound: tiny chiptune effects synthesized with the Web Audio API (no sound files) ----------
+const sfx = (() => {
+  const MUTE_KEY = "lizard-leap-muted";
+  let ac = null, master = null, noiseBuf = null;
+  let muted = false;
+  try { muted = localStorage.getItem(MUTE_KEY) === "1"; } catch {}
+
+  // Browsers only allow audio after a key press or click, so this runs from the input handlers.
+  function unlock() {
+    if (!ac) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      ac = new AC();
+      master = ac.createGain();
+      master.gain.value = 0.35;
+      master.connect(ac.destination);
+      noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const data = noiseBuf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    }
+    if (ac.state === "suspended") ac.resume();
+  }
+  const ready = () => ac && !muted && ac.state === "running";
+
+  // attack, then exponential fade: a short attack clicks, a longer one sounds soft
+  function envelope(delay, dur, vol, attack = 0.005) {
+    const g = ac.createGain(), t = ac.currentTime + delay;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.connect(master);
+    return { g, t };
+  }
+
+  // a single oscillator note, optionally sliding from f0 to f1.
+  // `sweep` runs it through a resonant low-pass filter sliding between two cutoffs,
+  // which is what makes a sound "wet" / squelchy instead of beepy.
+  function tone({ type = "square", f0, f1 = f0, dur, vol = 0.3, delay = 0, attack, sweep }) {
+    const { g, t } = envelope(delay, dur, vol, attack);
+    const o = ac.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    if (sweep) {
+      const lp = ac.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.Q.value = sweep.q;
+      lp.frequency.setValueAtTime(sweep.from, t);
+      lp.frequency.exponentialRampToValueAtTime(sweep.to, t + dur);
+      o.connect(lp).connect(g);
+    } else {
+      o.connect(g);
+    }
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  }
+
+  // filtered white noise, for thuds, crunches and whooshes
+  function noise({ dur, vol = 0.3, filter = "lowpass", f0, f1 = f0, delay = 0, attack }) {
+    const { g, t } = envelope(delay, dur, vol, attack);
+    const src = ac.createBufferSource(), bq = ac.createBiquadFilter();
+    src.buffer = noiseBuf;
+    bq.type = filter;
+    bq.frequency.setValueAtTime(f0, t);
+    bq.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    src.connect(bq).connect(g);
+    src.start(t);
+    src.stop(t + dur + 0.02);
+  }
+
+  const play = fn => (...args) => { if (ready()) fn(...args); };
+
+  return {
+    unlock,
+    get muted() { return muted; },
+    setMuted(m) {
+      muted = m;
+      try { localStorage.setItem(MUTE_KEY, m ? "1" : "0"); } catch {}
+    },
+    // rising "bwip"
+    jump: play(() => tone({ f0: 300, f1: 720, dur: 0.13, vol: 0.22 })),
+    // soft thud to go with the dust puff
+    land: play(() => {
+      noise({ dur: 0.09, vol: 0.35, f0: 500, f1: 150 });
+      tone({ type: "sine", f0: 130, f1: 60, dur: 0.09, vol: 0.35 });
+    }),
+    // bright two-note ding, higher for each stacked multiplier
+    berry: play(mult => {
+      const base = 660 * Math.pow(2, (mult - 2) * 3 / 12);
+      tone({ type: "square", f0: base, dur: 0.08, vol: 0.18 });
+      tone({ type: "square", f0: base * 1.5, dur: 0.16, vol: 0.18, delay: 0.07 });
+    }),
+    // soft squish: gentle attack, pitch sagging down, muffled
+    duck: play(() => {
+      tone({ type: "sine", f0: 420, f1: 150, dur: 0.18, vol: 0.28, attack: 0.03 });
+      tone({ type: "triangle", f0: 210, f1: 90, dur: 0.16, vol: 0.12, attack: 0.03,
+             sweep: { from: 900, to: 250, q: 6 } });
+      noise({ dur: 0.12, vol: 0.06, f0: 700, f1: 200, attack: 0.03 });
+    }),
+    // solid bonk: short, dense impact that stops dead (a long low tail sounds like a hollow drum)
+    bonk: play(() => {
+      noise({ dur: 0.12, vol: 0.6, f0: 380, f1: 110 });                                   // body thud
+      noise({ dur: 0.05, vol: 0.35, filter: "bandpass", f0: 1300, f1: 700 });             // stone crack
+      tone({ type: "sine", f0: 95, f1: 55, dur: 0.08, vol: 0.45 });                       // weight, no ring
+      tone({ type: "square", f0: 60, f1: 40, dur: 0.07, vol: 0.1, sweep: { from: 400, to: 150, q: 1 } }); // grit
+    }),
+    // low, meaty wet chomp-chomp, then a gulp
+    nom: play(() => {
+      for (const d of [0, 0.15]) {
+        tone({ type: "sawtooth", f0: 125, f1: 65, dur: 0.12, vol: 0.42, delay: d,
+               sweep: { from: 1100, to: 200, q: 9 } });                                  // squelchy bite
+        noise({ dur: 0.04, vol: 0.15, f0: 1500, f1: 400, delay: d });                     // teeth
+      }
+      tone({ type: "sine", f0: 160, f1: 330, dur: 0.09, vol: 0.3, delay: 0.32, attack: 0.015 });  // gulp
+    }),
+    // falling wah-wah; `after` leaves room for the crash sound to finish first
+    gameOver: play((after = 0.42) => {
+      tone({ type: "triangle", f0: 392, dur: 0.16, vol: 0.3, delay: after });
+      tone({ type: "triangle", f0: 330, dur: 0.16, vol: 0.3, delay: after + 0.18 });
+      tone({ type: "triangle", f0: 262, f1: 196, dur: 0.45, vol: 0.3, delay: after + 0.36 });
+    }),
+    // hit sound + game over, with a pause so the nom's gulp can be heard before the wah-wah
+    crash(kind) {
+      if (kind === "bird") { this.nom(); this.gameOver(0.8); }
+      else { this.bonk(); this.gameOver(0.35); }
+    },
+  };
+})();
+
+const muteButton = document.getElementById("mute");
+function syncMuteButton() {
+  const label = sfx.muted ? "Unmute sound (M)" : "Mute sound (M)";
+  muteButton.setAttribute("aria-pressed", String(sfx.muted));
+  muteButton.setAttribute("aria-label", label);
+  muteButton.title = label;
+}
+function toggleMute() {
+  sfx.setMuted(!sfx.muted);
+  syncMuteButton();
+}
+syncMuteButton();
+
+// Hidden sound board for tweaking effects: open the game with ?soundtest on the end of the address.
+if (new URLSearchParams(location.search).has("soundtest")) {
+  const board = document.createElement("div");
+  board.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px";
+  const sounds = [["Jump", "jump"], ["Land", "land"], ["Berry ×2", "berry", 2], ["Berry ×3", "berry", 3],
+                  ["Berry ×4", "berry", 4], ["Duck", "duck"], ["Bonk", "bonk"], ["Nom", "nom"],
+                  ["Game over", "gameOver", 0], ["Bonk + game over", "crash", "rock"],
+                  ["Nom + game over", "crash", "bird"]];
+  for (const [label, name, arg] of sounds) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.style.cssText = "font:inherit;padding:6px 12px;border-radius:8px;cursor:pointer;" +
+                      "background:var(--card);color:var(--text);border:1px solid var(--line)";
+    b.addEventListener("click", () => {
+      sfx.unlock();
+      sfx[name](arg);
+      b.blur();
+    });
+    board.append(b);
+  }
+  document.querySelector(".wrap").append(board);
+}
+muteButton.addEventListener("click", () => {
+  sfx.unlock();
+  toggleMute();
+  muteButton.blur();   // so the next Space press jumps instead of re-clicking the button
+});
+
 // ---------- game state ----------
 let liz, obstacles, speed, score, distance = 0, best = 0, state = "ready", spawnIn, lastTime, runAnim = 0;
-let keyDuck = false, touchDuck = false;
+let keyDuck = false, touchDuck = false, wasDucking = false;
 let berries, berryIn, mult, multTime, particles, popups;
 const FAST_FALL_GRAVITY = 3 * GRAVITY;   // holding duck mid-air drops you quickly
 
@@ -331,7 +519,7 @@ const ducking = () => state === "playing" && (keyDuck || touchDuck);
 
 function jump() {
   if (state === "ready" || state === "over") { reset(); state = "playing"; return; }
-  if (onGround() && !ducking()) liz.vy = JUMP_VELOCITY;
+  if (onGround() && !ducking()) { liz.vy = JUMP_VELOCITY; sfx.jump(); }
 }
 
 function lizFrame() {
@@ -386,6 +574,7 @@ function eat(b, by) {
   b.eaten = true;
   mult = Math.min(MAX_MULT, mult + 1);
   multTime = MULT_DURATION;
+  sfx.berry(mult);
   const cx = b.x + BERRY_W / 2, cy = by + BERRY_H / 2;
   for (let i = 0; i < 14; i++) {
     const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 160;
@@ -464,7 +653,10 @@ function update(dt) {
   liz.vy += (ducking() ? FAST_FALL_GRAVITY : GRAVITY) * dt;
   liz.y += liz.vy * dt;
   if (liz.y > GROUND) { liz.y = GROUND; liz.vy = 0; }
-  if (wasAirborne && onGround()) dustPuff();
+  if (wasAirborne && onGround()) { dustPuff(); sfx.land(); }
+  const isDucking = ducking();
+  if (isDucking && !wasDucking) sfx.duck();
+  wasDucking = isDucking;
 
   speed = Math.min(MAX_SPEED, speed + 12 * dt);
   distance += speed * dt;
@@ -505,6 +697,7 @@ let deathBy = "rock";
 function gameOver(kind) {
   state = "over";
   deathBy = kind;
+  sfx.crash(kind);
   const final = Math.floor(score);
   if (final > best) { best = final; showScores(); }
   saveBest(final);
@@ -561,14 +754,17 @@ function loop(t) {
 
 const DUCK_KEYS = ["ArrowDown", "KeyS"];
 document.addEventListener("keydown", e => {
+  sfx.unlock();
   if (e.code === "Space") { e.preventDefault(); if (!e.repeat) jump(); }
   if (DUCK_KEYS.includes(e.code)) { e.preventDefault(); keyDuck = true; }
+  if (e.code === "KeyM" && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) toggleMute();
 });
 document.addEventListener("keyup", e => { if (DUCK_KEYS.includes(e.code)) keyDuck = false; });
 window.addEventListener("blur", () => { keyDuck = touchDuck = false; });
 
 // touch/mouse: top half of the game jumps, holding the bottom half ducks
 canvas.addEventListener("pointerdown", e => {
+  sfx.unlock();
   const rect = canvas.getBoundingClientRect();
   if (state === "playing" && e.clientY > rect.top + rect.height / 2) touchDuck = true;
   else jump();

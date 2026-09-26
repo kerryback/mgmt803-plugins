@@ -12,6 +12,7 @@ A tiny pixel-art desert runner. You're a lizard. Jump the rocks, duck the birds,
 |---|---|
 | **Space** | Jump (also starts / restarts) |
 | **↓** or **S** | Duck (hold). In mid-air, drops you fast |
+| **M** | Mute / unmute sound (or click the speaker button; remembered next time) |
 | Phone | Tap the top half to jump, hold the bottom half to duck |
 
 - **Rocks** come in pebble, rock and boulder sizes. Jump them. Hit one: *Bonk!*
@@ -20,6 +21,8 @@ A tiny pixel-art desert runner. You're a lizard. Jump the rocks, duck the birds,
 - The game speeds up the longer you survive.
 
 Plays in light (desert day) or dark (desert night) mode, following your system setting.
+
+Retro sound effects for jumping, landing, ducking, berries, bonks, noms and game over, all synthesized in the browser with the Web Audio API (no sound files). Add `?soundtest` to the page address to get a board of buttons for auditioning each sound.
 
 ## How it's built
 
