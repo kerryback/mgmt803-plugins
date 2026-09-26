@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Math Atelier — Math Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F6F1E4;
+    --cream-panel: #FBF8F0;
+    --navy: #16233F;
+    --navy-soft: #223257;
+    --hunter: #2B4A3A;
+    --hunter-deep: #1E3629;
+    --gold: #C6A85C;
+    --gold-pale: #E6D9AE;
+    --ink: #1B2436;
+    --ink-soft: #4A5266;
+    --line: rgba(22, 35, 63, 0.16);
+    --shadow: 0 12px 30px rgba(22, 35, 63, 0.10);
+    --good: #2B4A3A;
+    --bad: #7A2E2E;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  :root[data-theme="dark"] {
+    --cream: #131C2E;
+    --cream-panel: #182644;
+    --ink: #EDE6D2;
+    --ink-soft: #C7BFA6;
+    --line: rgba(230, 217, 174, 0.18);
+    --shadow: 0 14px 34px rgba(0,0,0,0.4);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+  * { box-sizing: border-box; }
+  body {
+    height: 100%;
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  h1, h2, h3, .display {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+  .shell {
+    display: flex;
+    min-height: 100vh;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    background: var(--navy);
+    color: var(--gold-pale);
+    padding: 2.4rem 1.8rem;
+    border-right: 1px solid var(--line);
+  }
+  .crest {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.3rem;
+  }
+  .crest-mark { font-size: 1.5rem; color: var(--gold); }
+  .sidebar h1 { font-size: 1.7rem; color: #F4EEDD; }
+  .sidebar .tagline {
+    font-size: 0.86rem;
+    color: var(--gold-pale);
+    opacity: 0.75;
+    margin-top: 0.35rem;
+    font-style: italic;
+  }
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, var(--gold), transparent);
+    margin: 1.6rem 0;
+    opacity: 0.6;
+  }
+  .field-label {
+    font-size: 0.82rem;
+    color: var(--gold-pale);
+    opacity: 0.85;
+    margin-bottom: 0.4rem;
+    display: block;
+  }
+  .grade-toggle {
+    display: flex;
+    border: 1px solid rgba(230,217,174,0.35);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 0.4rem;
+  }
+  .grade-toggle button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--gold-pale);
+    padding: 0.6rem 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .grade-toggle button + button { border-left: 1px solid rgba(230,217,174,0.35); }
+  .grade-toggle button[aria-pressed="true"] {
+    background: var(--gold);
+    color: var(--navy);
+  }
+  .grade-toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -3px; }
+
+  .topic-list { list-style: none; margin: 0.6rem 0 0; padding: 0; }
+  .topic-list li { margin-bottom: 0.35rem; }
+  .topic-btn {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--gold-pale);
+    padding: 0.55rem 0.65rem;
+    font-family: 'Source Serif 4', serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border-radius: 2px;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .topic-btn:hover { background: rgba(230,217,174,0.08); }
+  .topic-btn[aria-pressed="true"] {
+    background: rgba(198,168,92,0.16);
+    border-color: var(--gold);
+    color: #F4EEDD;
+  }
+  .topic-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+  .topic-count {
+    font-size: 0.78rem;
+    opacity: 0.65;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .theme-toggle {
+    margin-top: 1.6rem;
+    background: transparent;
+    border: 1px solid rgba(230,217,174,0.3);
+    color: var(--gold-pale);
+    font-size: 0.8rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+
+  /* ---------- Main ---------- */
+  .main {
+    flex: 1;
+    padding: 2.6rem 3.2rem 3rem;
+    min-width: 0;
+  }
+  .main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 1rem;
+    margin-bottom: 1.8rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .main-header h2 { font-size: 1.9rem; color: var(--hunter); }
+  .subject-line { color: var(--ink-soft); font-size: 0.95rem; margin-top: 0.25rem; }
+
+  .stat-row { display: flex; gap: 1.6rem; }
+  .stat { text-align: right; }
+  .stat .num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gold);
+    display: block;
+    line-height: 1;
+  }
+  .stat .lbl { font-size: 0.76rem; color: var(--ink-soft); }
+
+  .empty-state {
+    border: 1px dashed var(--line);
+    padding: 3rem 2rem;
+    text-align: center;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  .problem-card {
+    background: var(--cream-panel);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    padding: 2.4rem 2.6rem;
+    max-width: 640px;
+  }
+  .problem-eyebrow {
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    margin-bottom: 0.6rem;
+  }
+  .problem-eyebrow b { color: var(--hunter); }
+  .problem-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 1.6rem;
+    line-height: 1.35;
+  }
+  .answer-row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+  .answer-input {
+    font-family: 'Source Serif 4', serif;
+    font-size: 1.15rem;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--line);
+    background: var(--cream);
+    color: var(--ink);
+    border-radius: 2px;
+    width: 180px;
+  }
+  .answer-input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+  .btn {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    padding: 0.55rem 1.3rem;
+    border: 1px solid var(--hunter);
+    background: var(--hunter);
+    color: #F4EEDD;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--hunter-deep); }
+  .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .btn.secondary {
+    background: transparent;
+    color: var(--hunter);
+  }
+  :root[data-theme="dark"] .btn.secondary { color: var(--gold); border-color: var(--gold); }
+
+  .feedback {
+    margin-top: 1.1rem;
+    font-size: 0.98rem;
+    min-height: 1.4rem;
+  }
+  .feedback.good { color: var(--good); }
+  .feedback.bad { color: var(--bad); }
+  :root[data-theme="dark"] .feedback.good { color: #8FBFA0; }
+  :root[data-theme="dark"] .feedback.bad { color: #D69A9A; }
+
+  .hint-line {
+    margin-top: 0.9rem;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  .progress-note {
+    margin-top: 2rem;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    max-width: 640px;
+  }
+
+  @media (max-width: 780px) {
+    .shell { flex-direction: column; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--line); }
+    .main { padding: 1.8rem 1.3rem 2.4rem; }
+    .problem-card { padding: 1.8rem 1.6rem; }
+    .problem-text { font-size: 1.55rem; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="crest"><span class="crest-mark">&#127963;</span><h1>The Math Atelier</h1></div>
+    <p class="tagline">A quiet place for arithmetic</p>
+    <div class="divider"></div>
+
+    <span class="field-label">Grade</span>
+    <div class="grade-toggle" role="group" aria-label="Choose grade">
+      <button id="grade4-btn" aria-pressed="true">Fourth</button>
+      <button id="grade6-btn" aria-pressed="false">Sixth</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <span class="field-label">Subject</span>
+    <ul class="topic-list" id="topic-list"></ul>
+
+    <button class="theme-toggle" id="theme-toggle" type="button">Switch to light study</button>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <h2 id="topic-heading">Choose a subject</h2>
+        <div class="subject-line" id="subject-line">Select a subject at left to begin practicing.</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><span class="num" id="stat-correct">0</span><span class="lbl">Correct</span></div>
+        <div class="stat"><span class="num" id="stat-total">0</span><span class="lbl">Attempted</span></div>
+        <div class="stat"><span class="num" id="stat-streak">0</span><span class="lbl">Streak</span></div>
+      </div>
+    </div>
+
+    <div id="empty-state" class="empty-state">Pick a grade and a subject from the study on the left, and your first problem will appear here.</div>
+
+    <div id="problem-card" class="problem-card" style="display:none;">
+      <div class="problem-eyebrow"><b id="problem-topic-label"></b> — Problem <span id="problem-number">1</span></div>
+      <div class="problem-text" id="problem-text"></div>
+      <div class="answer-row">
+        <input type="text" id="answer-input" class="answer-input" placeholder="Your answer" inputmode="text" autocomplete="off">
+        <button class="btn" id="check-btn" type="button">Check</button>
+        <button class="btn secondary" id="next-btn" type="button">Next problem</button>
+      </div>
+      <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+      <div class="hint-line" id="hint-line"></div>
+    </div>
+
+    <p class="progress-note" id="progress-note"></p>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Storage ----------
+  var STORAGE_KEY = "the-study-progress-v1";
+  function loadProgress() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  function saveProgress(data) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* ignore */ }
+  }
+
+  var progress = loadProgress(); // { name: { grade4: {topicId:{correct,total,streak,best}}, grade6: {...} } }
+
+  // ---------- Helpers ----------
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = b; b = a % b; a = t; } return a || 1; }
+  function simplifyFraction(n, d) {
+    if (d < 0) { n = -n; d = -d; }
+    var g = gcd(n, d);
+    return [n / g, d / g];
+  }
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function choice(arr) { return arr[randInt(0, arr.length - 1)]; }
+  function fmtFraction(n, d) {
+    var s = simplifyFraction(n, d);
+    if (s[1] === 1) return String(s[0]);
+    return s[0] + "/" + s[1];
+  }
+  function normalizeAnswer(str) {
+    return String(str).trim().toLowerCase().replace(/\s+/g, "");
+  }
+  function parseFractionInput(str) {
+    var s = normalizeAnswer(str);
+    if (s.indexOf("/") !== -1) {
+      var parts = s.split("/");
+      var n = parseFloat(parts[0]), d = parseFloat(parts[1]);
+      if (isNaN(n) || isNaN(d) || d === 0) return null;
+      return n / d;
+    }
+    var f = parseFloat(s);
+    return isNaN(f) ? null : f;
+  }
+
+  // ---------- Topic definitions ----------
+  // Each topic has: id, label, generate() -> {prompt, checkAnswer(input), hint}
+
+  function numericCheck(expected, tolerance) {
+    tolerance = tolerance === undefined ? 0.001 : tolerance;
+    return function (input) {
+      var v = parseFractionInput(input);
+      if (v === null) return false;
+      return Math.abs(v - expected) < tolerance;
+    };
+  }
+
+  var GRADE4_TOPICS = [
+    {
+      id: "mult-div",
+      label: "Multiplication & Division",
+      generate: function () {
+        if (Math.random() < 0.5) {
+          var a = randInt(6, 12), b = randInt(6, 12);
+          return { prompt: a + " \u00D7 " + b + " = ?", checkAnswer: numericCheck(a * b), hint: "Break one factor into tens and ones, then add the parts." };
+        } else {
+          var q = randInt(3, 12), div = randInt(2, 12);
+          var product = q * div;
+          return { prompt: product + " \u00F7 " + div + " = ?", checkAnswer: numericCheck(q), hint: "Think: " + div + " times what number gives " + product + "?" };
+        }
+      }
+    },
+    {
+      id: "fractions",
+      label: "Fractions (like denominators)",
+      generate: function () {
+        var d = choice([4, 5, 6, 8, 10, 12]);
+        var a = randInt(1, d - 1), b = randInt(1, d - 1);
+        var op = choice(["+", "-"]);
+        var n1 = a, n2 = b;
+        if (op === "-" && n1 < n2) { var t = n1; n1 = n2; n2 = t; }
+        var result = op === "+" ? n1 + n2 : n1 - n2;
+        return {
+          prompt: n1 + "/" + d + " " + op + " " + n2 + "/" + d + " = ?",
+          checkAnswer: function (input) {
+            var v = parseFractionInput(input);
+            if (v === null) return false;
+            return Math.abs(v - result / d) < 0.001;
+          },
+          hint: "Same denominator: just " + (op === "+" ? "add" : "subtract") + " the top numbers, then simplify if you can."
+        };
+      }
+    },
+    {
+      id: "decimals",
+      label: "Decimals (add & subtract)",
+      generate: function () {
+        var a = (randInt(10, 90) / 10).toFixed(1);
+        var b = (randInt(10, 90) / 10).toFixed(1);
+        var op = choice(["+", "-"]);
+        var af = parseFloat(a), bf = parseFloat(b);
+        if (op === "-" && af < bf) { var t = a; a = b; b = t; af = parseFloat(a); bf = parseFloat(b); }
+        var result = op === "+" ? af + bf : af - bf;
+        result = Math.round(result * 10) / 10;
+        return { prompt: a + " " + op + " " + b + " = ?", checkAnswer: numericCheck(result, 0.05), hint: "Line up the decimal points, then " + (op === "+" ? "add" : "subtract") + " as usual." };
+      }
+    },
+    {
+      id: "multi-digit",
+      label: "Multi-Digit Addition & Subtraction",
+      generate: function () {
+        var a = randInt(120, 950), b = randInt(120, 950);
+        var op = choice(["+", "-"]);
+        if (op === "-" && a < b) { var t = a; a = b; b = t; }
+        var result = op === "+" ? a + b : a - b;
+        return { prompt: a + " " + op + " " + b + " = ?", checkAnswer: numericCheck(result), hint: "Work from the ones place, regrouping as needed." };
+      }
+    },
+    {
+      id: "word-problems",
+      label: "Word Problems",
+      generate: function () {
+        var templates = [
+          function () {
+            var boxes = randInt(4, 9), each = randInt(6, 15);
+            return { prompt: "A baker packs " + each + " rolls into each box. How many rolls fill " + boxes + " boxes?", answer: boxes * each, hint: "Multiply the number of boxes by the rolls in each one." };
+          },
+          function () {
+            var total = randInt(80, 300), groups = randInt(4, 8);
+            while (total % groups !== 0) { total = randInt(80, 300); }
+            return { prompt: total + " stamps are shared equally among " + groups + " collectors. How many stamps does each collector get?", answer: total / groups, hint: "Divide the total by the number of collectors." };
+          },
+          function () {
+            var start = randInt(200, 900), spent = randInt(30, 180);
+            return { prompt: "A library has " + start + " books. " + spent + " are checked out. How many remain on the shelves?", answer: start - spent, hint: "Subtract the books checked out from the total." };
+          }
+        ];
+        var t = choice(templates)();
+        return { prompt: t.prompt, checkAnswer: numericCheck(t.answer), hint: t.hint };
+      }
+    }
+  ];
+
+  var GRADE6_TOPICS = [
+    {
+      id: "ratios",
+      label: "Ratios & Rates",
+      generate: function () {
+        var a = randInt(2, 9), b = randInt(2, 9);
+        var k = randInt(2, 6);
+        return { prompt: "If the ratio " + a + " : " + b + " is scaled up by " + k + ", what is the new second term? (" + (a * k) + " : ?)", checkAnswer: numericCheck(b * k), hint: "Multiply both terms of the ratio by the same scale factor, " + k + "." };
+      }
+    },
+    {
+      id: "fraction-ops",
+      label: "Fraction Operations",
+      generate: function () {
+        var op = choice(["\u00D7", "\u00F7", "+", "-"]);
+        var n1 = randInt(1, 8), d1 = randInt(2, 9);
+        var n2 = randInt(1, 8), d2 = randInt(2, 9);
+        var result;
+        if (op === "\u00D7") result = (n1 * n2) / (d1 * d2);
+        else if (op === "\u00F7") result = (n1 * d2) / (d1 * n2);
+        else {
+          var common = d1 * d2;
+          var a = n1 * d2, b = n2 * d1;
+          if (op === "-" && a < b) { var t1 = n1, t2 = d1; n1 = n2; d1 = d2; n2 = t1; d2 = t2; a = n1 * d2; b = n2 * d1; }
+          result = op === "+" ? (a + b) / common : (a - b) / common;
+        }
+        return {
+          prompt: n1 + "/" + d1 + " " + op + " " + n2 + "/" + d2 + " = ?",
+          checkAnswer: function (input) {
+            var v = parseFractionInput(input);
+            return v !== null && Math.abs(v - result) < 0.001;
+          },
+          hint: op === "\u00D7" ? "Multiply numerators together, then denominators, and simplify."
+              : op === "\u00F7" ? "Multiply by the reciprocal of the second fraction."
+              : "Find a common denominator before you " + (op === "+" ? "add." : "subtract.")
+        };
+      }
+    },
+    {
+      id: "decimals-percents",
+      label: "Decimals & Percents",
+      generate: function () {
+        var whole = randInt(20, 400);
+        var pct = choice([10, 20, 25, 50, 75, 5, 15]);
+        var result = Math.round(whole * pct) / 100;
+        return { prompt: pct + "% of " + whole + " = ?", checkAnswer: numericCheck(result, 0.05), hint: "Convert the percent to a decimal, then multiply." };
+      }
+    },
+    {
+      id: "negatives",
+      label: "Negative Numbers",
+      generate: function () {
+        var a = randInt(-20, 20), b = randInt(-20, 20);
+        var op = choice(["+", "-"]);
+        var result = op === "+" ? a + b : a - b;
+        return { prompt: a + " " + op + " (" + b + ") = ?", checkAnswer: numericCheck(result), hint: "Subtracting a negative is the same as adding its positive." };
+      }
+    },
+    {
+      id: "expressions",
+      label: "Expressions & Simple Equations",
+      generate: function () {
+        var x = randInt(2, 15);
+        var m = randInt(2, 6), c = randInt(1, 20);
+        var result = m * x + c;
+        return {
+          prompt: m + "x + " + c + " = " + result + ".  What is x?",
+          checkAnswer: numericCheck(x),
+          hint: "Subtract " + c + " from both sides, then divide by " + m + "."
+        };
+      }
+    },
+    {
+      id: "geometry",
+      label: "Geometry: Area & Perimeter",
+      generate: function () {
+        var l = randInt(4, 18), w = randInt(3, 15);
+        var askArea = Math.random() < 0.5;
+        return askArea
+          ? { prompt: "A rectangle is " + l + " cm by " + w + " cm. What is its area, in cm\u00B2?", checkAnswer: numericCheck(l * w), hint: "Area of a rectangle is length \u00D7 width." }
+          : { prompt: "A rectangle is " + l + " cm by " + w + " cm. What is its perimeter, in cm?", checkAnswer: numericCheck(2 * (l + w)), hint: "Perimeter is the sum of all four sides: 2 \u00D7 (length + width)." };
+      }
+    }
+  ];
+
+  // ---------- State ----------
+  var state = {
+    grade: 4,
+    topicId: null,
+    current: null,
+    problemNumber: 1
+  };
+
+  function topicsForGrade(g) { return g === 4 ? GRADE4_TOPICS : GRADE6_TOPICS; }
+  function findTopic(g, id) {
+    var list = topicsForGrade(g);
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+
+  function gradeKey(g) { return "grade" + g; }
+
+  function getTopicStats(g, topicId) {
+    if (!progress[gradeKey(g)]) progress[gradeKey(g)] = {};
+    if (!progress[gradeKey(g)][topicId]) progress[gradeKey(g)][topicId] = { correct: 0, total: 0, streak: 0, best: 0 };
+    return progress[gradeKey(g)][topicId];
+  }
+
+  // ---------- Rendering ----------
+  var topicListEl = document.getElementById("topic-list");
+  var topicHeading = document.getElementById("topic-heading");
+  var subjectLine = document.getElementById("subject-line");
+  var emptyState = document.getElementById("empty-state");
+  var problemCard = document.getElementById("problem-card");
+  var problemText = document.getElementById("problem-text");
+  var problemTopicLabel = document.getElementById("problem-topic-label");
+  var problemNumberEl = document.getElementById("problem-number");
+  var answerInput = document.getElementById("answer-input");
+  var feedbackEl = document.getElementById("feedback");
+  var hintLine = document.getElementById("hint-line");
+  var statCorrect = document.getElementById("stat-correct");
+  var statTotal = document.getElementById("stat-total");
+  var statStreak = document.getElementById("stat-streak");
+  var progressNote = document.getElementById("progress-note");
+
+  function renderTopicList() {
+    var list = topicsForGrade(state.grade);
+    topicListEl.innerHTML = "";
+    list.forEach(function (topic) {
+      var li = document.createElement("li");
+      var btn = document.createElement("button");
+      btn.className = "topic-btn";
+      btn.type = "button";
+      btn.setAttribute("aria-pressed", state.topicId === topic.id ? "true" : "false");
+      var stats = getTopicStats(state.grade, topic.id);
+      btn.innerHTML = "<span>" + topic.label + "</span><span class='topic-count'>" + stats.correct + "/" + stats.total + "</span>";
+      btn.addEventListener("click", function () { selectTopic(topic.id); });
+      li.appendChild(btn);
+      topicListEl.appendChild(li);
+    });
+  }
+
+  function updateStatsDisplay() {
+    if (!state.topicId) return;
+    var stats = getTopicStats(state.grade, state.topicId);
+    statCorrect.textContent = stats.correct;
+    statTotal.textContent = stats.total;
+    statStreak.textContent = stats.streak;
+    progressNote.textContent = stats.best > 2
+      ? "Personal best streak on this subject: " + stats.best + "."
+      : "";
+  }
+
+  function selectTopic(topicId) {
+    state.topicId = topicId;
+    state.problemNumber = 1;
+    var topic = findTopic(state.grade, topicId);
+    topicHeading.textContent = topic.label;
+    subjectLine.textContent = "Grade " + state.grade + " \u2014 practice at your own pace.";
+    emptyState.style.display = "none";
+    problemCard.style.display = "block";
+    renderTopicList();
+    updateStatsDisplay();
+    nextProblem();
+  }
+
+  function nextProblem() {
+    var topic = findTopic(state.grade, state.topicId);
+    state.current = topic.generate();
+    problemTopicLabel.textContent = topic.label;
+    problemNumberEl.textContent = state.problemNumber;
+    problemText.textContent = state.current.prompt;
+    answerInput.value = "";
+    feedbackEl.textContent = "";
+    feedbackEl.className = "feedback";
+    hintLine.textContent = "";
+    answerInput.focus();
+  }
+
+  function checkAnswer() {
+    if (!state.current) return;
+    var stats = getTopicStats(state.grade, state.topicId);
+    var val = answerInput.value.trim();
+    if (!val) {
+      feedbackEl.textContent = "Enter an answer first.";
+      feedbackEl.className = "feedback bad";
+      return;
+    }
+    var correct = state.current.checkAnswer(val);
+    stats.total += 1;
+    if (correct) {
+      stats.correct += 1;
+      stats.streak += 1;
+      if (stats.streak > stats.best) stats.best = stats.streak;
+      feedbackEl.textContent = "Correct.";
+      feedbackEl.className = "feedback good";
+      hintLine.textContent = "";
+      state.problemNumber += 1;
+      saveProgress(progress);
+      renderTopicList();
+      updateStatsDisplay();
+      setTimeout(nextProblem, 650);
+    } else {
+      stats.streak = 0;
+      feedbackEl.textContent = "Not quite \u2014 try again, or read the note below.";
+      feedbackEl.className = "feedback bad";
+      hintLine.textContent = state.current.hint || "";
+      saveProgress(progress);
+      renderTopicList();
+      updateStatsDisplay();
+    }
+  }
+
+  // ---------- Grade toggle ----------
+  var grade4Btn = document.getElementById("grade4-btn");
+  var grade6Btn = document.getElementById("grade6-btn");
+  function setGrade(g) {
+    state.grade = g;
+    state.topicId = null;
+    grade4Btn.setAttribute("aria-pressed", g === 4 ? "true" : "false");
+    grade6Btn.setAttribute("aria-pressed", g === 6 ? "true" : "false");
+    topicHeading.textContent = "Choose a subject";
+    subjectLine.textContent = "Select a subject at left to begin practicing.";
+    emptyState.style.display = "block";
+    problemCard.style.display = "none";
+    renderTopicList();
+  }
+  grade4Btn.addEventListener("click", function () { setGrade(4); });
+  grade6Btn.addEventListener("click", function () { setGrade(6); });
+
+  document.getElementById("check-btn").addEventListener("click", checkAnswer);
+  document.getElementById("next-btn").addEventListener("click", function () {
+    state.problemNumber += 1;
+    nextProblem();
+  });
+  answerInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); checkAnswer(); }
+  });
+
+  // ---------- Theme toggle ----------
+  var themeBtn = document.getElementById("theme-toggle");
+  var root = document.documentElement;
+  function applyThemeLabel() {
+    var forced = root.getAttribute("data-theme");
+    if (forced === "dark") themeBtn.textContent = "Switch to light study";
+    else if (forced === "light") themeBtn.textContent = "Switch to evening study";
+    else themeBtn.textContent = "Switch study lighting";
+  }
+  themeBtn.addEventListener("click", function () {
+    var current = root.getAttribute("data-theme");
+    if (current === "dark") root.setAttribute("data-theme", "light");
+    else root.setAttribute("data-theme", "dark");
+    applyThemeLabel();
+    try { localStorage.setItem("the-study-theme", root.getAttribute("data-theme")); } catch (e) {}
+  });
+  (function initTheme() {
+    try {
+      var saved = localStorage.getItem("the-study-theme");
+      if (saved) root.setAttribute("data-theme", saved);
+    } catch (e) {}
+    applyThemeLabel();
+  })();
+
+  // ---------- Init ----------
+  renderTopicList();
+})();
+</script>
+</body>
+</html>
