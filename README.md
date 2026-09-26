@@ -24,6 +24,7 @@ session after installing so the plugin's skills load.
 
 | Plugin | What it does |
 | --- | --- |
+| `childrens-book-generator@mgmt803` | Scaffolds and runs an app that turns a character, art style, and moral of the story into a short illustrated children's picture book, with an optional rhyming mode and a PDF download. |
 | `critique@mgmt803` | Reviews work Claude produced and says what to do about it, with located evidence for every finding. Fans out several subagents. |
 | `elegant-pdf@mgmt803` | Flyers, programs, reports and handbooks as branded PDFs or JPEGs, rendered from a small HTML design system. |
 | `shoji@mgmt803` | A Quarto reveal.js slide theme in plum, pale gray and dusty blue, set for text- and code-heavy decks. |

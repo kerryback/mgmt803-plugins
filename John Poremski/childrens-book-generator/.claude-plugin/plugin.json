@@ -1,0 +1,8 @@
+{
+  "name": "childrens-book-generator",
+  "description": "Scaffold and run a FastAPI app that generates a short illustrated children's picture book -- plot beats and matching illustrations, optional rhyme -- from a character, art style, and moral of the story.",
+  "version": "0.1.0",
+  "author": {
+    "name": "John Poremski"
+  }
+}
