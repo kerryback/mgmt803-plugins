@@ -1,0 +1,8 @@
+{
+  "name": "countdown",
+  "description": "A countdown page with no fixed look: type an occasion and a date, and Claude designs the whole page live — colors, an emoji, a font and a particle effect that fit the occasion. Requires an ANTHROPIC_API_KEY.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Jessica George"
+  }
+}

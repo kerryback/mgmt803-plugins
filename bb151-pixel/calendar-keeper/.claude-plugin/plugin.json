@@ -1,0 +1,8 @@
+{
+  "name": "calendar-keeper",
+  "description": "Plan your week and edit Google Calendar across several calendars (work, school, a side job, personal) from rules you set once in a private profile on your computer. Keeps anything that isn't work off the work calendar, including the attendee trap that copies events onto your primary calendar; plans around work hours the calendar doesn't show; protects rest; proposes before editing; and checks its edits afterwards.",
+  "version": "1.0.0",
+  "author": {
+    "name": "bb151-pixel"
+  }
+}

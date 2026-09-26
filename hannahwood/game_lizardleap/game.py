@@ -1,0 +1,693 @@
+import json
+import os
+import sys
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+
+app = FastAPI(title="Lizard Leap")
+
+if getattr(sys, "frozen", False):
+    # Packaged .exe: its own folder is a temp dir wiped on exit, so keep the score in AppData.
+    SCORE_FILE = Path(os.environ.get("APPDATA", Path.home())) / "LizardLeap" / "highscore.json"
+else:
+    SCORE_FILE = Path(__file__).with_name("highscore.json")
+
+
+def load_high_score() -> int:
+    try:
+        return int(json.loads(SCORE_FILE.read_text())["high_score"])
+    except Exception:
+        return 0
+
+
+class Score(BaseModel):
+    score: int
+
+
+@app.get("/api/highscore")
+def get_high_score():
+    return {"high_score": load_high_score()}
+
+
+@app.post("/api/highscore")
+def submit_score(s: Score):
+    best = load_high_score()
+    if s.score > best:
+        best = s.score
+        SCORE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        SCORE_FILE.write_text(json.dumps({"high_score": best}))
+    return {"high_score": best}
+
+
+@app.get("/", response_class=HTMLResponse)
+def index():
+    return PAGE
+
+
+PAGE = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lizard Leap</title>
+<style>
+  :root {
+    --bg:#f6f1e9; --card:#fffaf2; --text:#2b2118; --muted:#7a6a5a; --line:#e6d9c6;
+    /* game palette: desert by day */
+    --sky-top:#7cc4e8; --sky-bottom:#fbe3b9; --sun:#fff1a8; --cloud:#ffffff; --star:#ffffff;
+    --mtn-far:#dcae8e; --mtn-near:#cf9466;
+    --sand:#e8b877; --sand-dark:#cf9a58; --sand-light:#f6d49b;
+    --rock-light:#bdb4a9; --rock:#8f867c; --rock-dark:#5f5750; --rock-speck:#756c63;
+    --liz:#5dae3c; --liz-dark:#35751f; --liz-belly:#cfe57e; --liz-eye:#161616;
+    --bird:#7a4f3a; --bird-dark:#4d2f22; --beak:#f2a93b;
+    --berry:#c0265e; --berry-hi:#ff9cbd; --stem:#6b4a2b;
+    --dust:#fbe6c2; --dust-2:#e2b67c;
+    --shadow:rgba(60,35,10,.18); --panel:rgba(255,250,242,.88);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#110f1a; --card:#1b1826; --text:#ece6f5; --muted:#a39bb3; --line:#2e2a3d;
+      /* desert by night */
+      --sky-top:#0b1030; --sky-bottom:#3a2d5c; --sun:#f3ecd2; --cloud:#ffffff; --star:#fff8e0;
+      --mtn-far:#2e2a52; --mtn-near:#3d3462;
+      --sand:#5a4668; --sand-dark:#4a3a58; --sand-light:#6f5783;
+      --rock-light:#8e8ba6; --rock:#66637e; --rock-dark:#403e56; --rock-speck:#55526c;
+      --liz:#6fc24a; --liz-dark:#3f8a2a; --liz-belly:#b9d57c; --liz-eye:#0d0d0d;
+      --bird:#c2a58e; --bird-dark:#86695a; --beak:#f2b04b;
+      --berry:#e8467e; --berry-hi:#ffc0d4; --stem:#a07a52;
+      --dust:#b9a6cc; --dust-2:#8c779f;
+      --shadow:rgba(0,0,0,.35); --panel:rgba(27,24,38,.85);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:16px;
+         background:var(--bg); color:var(--text); font:16px/1.5 system-ui, sans-serif; }
+  .wrap { width:100%; max-width:760px; }
+  .bar { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+  h1 { margin:0; font-size:1.25rem; }
+  .scores { font-variant-numeric: tabular-nums; color:var(--muted); }
+  .scores strong { color:var(--text); }
+  canvas { display:block; width:100%; aspect-ratio: 3 / 1; border:1px solid var(--line);
+           border-radius:14px; image-rendering: pixelated; }
+  .hint { margin-top:10px; font-size:.85rem; color:var(--muted); text-align:center; }
+  kbd { border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:0 6px;
+        font:inherit; font-size:.8rem; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="bar">
+    <h1>Lizard Leap</h1>
+    <div class="scores">Score <strong id="score">0</strong> · Best <strong id="best">0</strong></div>
+  </div>
+  <canvas id="game" width="900" height="300"></canvas>
+  <p class="hint"><kbd>Space</kbd> jump · <kbd>↓</kbd>/<kbd>S</kbd> duck · grab berries for a stacking score multiplier<br>
+    Duck under birds instead of jumping them for bonus points<br>
+    On a phone: tap the top half to jump, hold the bottom half to duck<br>
+    Browser in dark mode? You get a nighttime desert. Light mode gets a daytime desert.</p>
+</main>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const W = canvas.width, H = canvas.height;
+const P = 4;                 // size of one "pixel" in the pixel art
+const GROUND = H - 40;       // y of the ground surface (multiple of P)
+
+const GRAVITY = 2400;        // px/s²
+const JUMP_VELOCITY = -820;  // px/s
+const START_SPEED = 360;     // px/s
+const MAX_SPEED = 900;
+
+// ---------- palette (read from CSS so light/dark mode both work) ----------
+const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+let pal = {}, isDark = false, skyGradient;
+function readPalette() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const name of ["text","muted","sky-top","sky-bottom","sun","cloud","star","mtn-far","mtn-near",
+                      "sand","sand-dark","sand-light","rock-light","rock","rock-dark","rock-speck",
+                      "liz","liz-dark","liz-belly","liz-eye","bird","bird-dark","beak","berry","berry-hi","stem","dust","dust-2","shadow","panel"]) {
+    pal[name] = cs.getPropertyValue("--" + name).trim();
+  }
+  isDark = darkQuery.matches;
+  skyGradient = ctx.createLinearGradient(0, 0, 0, GROUND);
+  skyGradient.addColorStop(0, pal["sky-top"]);
+  skyGradient.addColorStop(1, pal["sky-bottom"]);
+}
+darkQuery.addEventListener("change", readPalette);
+
+// ---------- sprites ----------
+// G body, D dark spots, L belly, E eye. Two leg rows swap to make it run.
+const LIZ_BODY = [
+  "...........GGG..",
+  "..........GGGGEG",
+  "....GDGDGDGGGGGG",
+  "..GGGGGGGGGGGG..",
+  "GG.LLLLLLLLL....",
+];
+const LIZ_LEGS = [
+  ["....G.....G.....",
+   "...G.......G...."],
+  [".....G...G......",
+   ".....G...G......"],
+];
+const LIZ_FRAMES = LIZ_LEGS.map(legs => LIZ_BODY.concat(legs));
+// ducking: flattened out, legs splayed sideways
+const LIZ_DUCK_BODY = [
+  ".....GDGDGDGGGGEG.",
+  "..GGGGGGGGGGGGGGGG",
+  "GG..LLLLLLLLLL....",
+];
+const LIZ_DUCK_FRAMES = [
+  LIZ_DUCK_BODY.concat(["...GG.......GG...."]),
+  LIZ_DUCK_BODY.concat(["..GG.......GG....."]),
+];
+const LIZ_COLORS = { G: "liz", D: "liz-dark", L: "liz-belly", E: "liz-eye" };
+
+// B body, K wing, Y beak, E eye. Faces left, toward the lizard.
+const BIRD_FRAMES = [
+  [".....KK.....",
+   "..B..KKK....",
+   ".BEBBBBBBBBB",
+   "YBBBBBBBBB..",
+   "....BBBB....",
+   "............"],
+  ["............",
+   "..B.........",
+   ".BEBBBBBBBBB",
+   "YBBBBKKKBB..",
+   "....BKKK....",
+   ".....KK....."],
+];
+const BIRD_COLORS = { B: "bird", K: "bird-dark", Y: "beak", E: "liz-eye" };
+const BIRD_TOP = GROUND - 16 - BIRD_FRAMES[0].length * P;   // skims just above a ducking lizard
+const BIRDS_AFTER_SCORE = 250;
+
+// R berry, H shine, S stem, L leaf
+const BERRY = [
+  "....SLL.",
+  "....S...",
+  ".RR.RR..",
+  "RHRRHRR.",
+  "RRRRRRR.",
+  ".RRHRR..",
+  "..RRRR..",
+  "...RR...",
+];
+const BERRY_COLORS = { R: "berry", H: "berry-hi", S: "stem", L: "liz-dark" };
+const BERRY_TOP = GROUND - 100;   // only reachable by jumping
+const MULT_DURATION = 6;          // seconds a multiplier lasts
+const MAX_MULT = 4;
+const DUCK_BONUS = 100;           // flat points for ducking under a bird instead of jumping it
+
+const CLOUD = [
+  "....WWWW......",
+  "..WWWWWWWW.WW.",
+  "WWWWWWWWWWWWWW",
+];
+
+function drawSprite(rows, x, y, colors) {
+  for (let r = 0; r < rows.length; r++) {
+    for (let c = 0; c < rows[r].length; c++) {
+      const ch = rows[r][c];
+      if (ch === ".") continue;
+      ctx.fillStyle = pal[colors[ch]];
+      ctx.fillRect(Math.round(x) + c * P, Math.round(y) + r * P, P, P);
+    }
+  }
+}
+
+// ---------- rocks: generated pixel blobs with simple top-left lighting ----------
+const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const ROCK_SHADES = [null, "rock-light", "rock", "rock-dark", "rock-speck"];
+
+function makeRock() {
+  const r = Math.random();
+  const [w, h] = r < 0.4 ? [randInt(5, 7), randInt(4, 5)]      // pebble
+               : r < 0.8 ? [randInt(7, 10), randInt(6, 8)]     // rock
+               :           [randInt(10, 13), randInt(9, 12)];  // boulder
+  const heights = [];
+  for (let x = 0; x < w; x++) {
+    const t = ((x + 0.5) / w) * 2 - 1;
+    const prof = Math.sqrt(Math.max(0, 1 - t * t));
+    heights.push(Math.min(h, Math.max(1, Math.round(h * prof + (Math.random() - 0.5) * 1.5))));
+  }
+  const filled = (x, y) => x >= 0 && x < w && y >= 0 && y < h && y >= h - heights[x];
+  const grid = [];
+  for (let y = 0; y < h; y++) {
+    const row = [];
+    for (let x = 0; x < w; x++) {
+      let s = 0;
+      if (filled(x, y)) {
+        if (!filled(x, y - 1)) s = 1;                                   // lit top edge
+        else if (!filled(x + 1, y) || y === h - 1) s = 3;               // shadowed right / base
+        else if (!filled(x - 1, y) && y < h / 2) s = 1;                 // lit upper-left edge
+        else if (x > w * 0.6 && y > h * 0.5 && Math.random() < 0.5) s = 3;
+        else s = Math.random() < 0.1 ? 4 : 2;                           // body + speckles
+      }
+      row.push(s);
+    }
+    grid.push(row);
+  }
+  return { kind: "rock", x: W + 10, top: GROUND - h * P, w, h, grid, extraSpeed: 0 };
+}
+
+function drawRock(o) {
+  const left = Math.round(o.x);
+  for (let y = 0; y < o.h; y++) for (let x = 0; x < o.w; x++) {
+    const s = o.grid[y][x];
+    if (!s) continue;
+    ctx.fillStyle = pal[ROCK_SHADES[s]];
+    ctx.fillRect(left + x * P, o.top + y * P, P, P);
+  }
+}
+
+// ---------- birds ----------
+function makeBird() {
+  return { kind: "bird", x: W + 10, top: BIRD_TOP,
+           w: BIRD_FRAMES[0][0].length, h: BIRD_FRAMES[0].length,
+           flap: Math.random(), extraSpeed: 70 };   // birds fly a bit faster than the ground scrolls
+}
+const birdRows = o => BIRD_FRAMES[Math.floor(o.flap / 0.14) % 2];
+
+// is pixel (gx, gy) of an obstacle solid?
+function solidAt(o, gx, gy) {
+  if (gx < 0 || gx >= o.w || gy < 0 || gy >= o.h) return false;
+  return o.kind === "rock" ? o.grid[gy][gx] > 0 : birdRows(o)[gy][gx] !== ".";
+}
+
+// ---------- scenery (all tiles seamlessly) ----------
+function ridge(n, base, waves) {
+  const phases = waves.map(() => Math.random() * Math.PI * 2);
+  return Array.from({ length: n }, (_, i) => Math.max(1, Math.round(
+    base + waves.reduce((sum, [f, a], k) => sum + a * Math.sin(2 * Math.PI * f * i / n + phases[k]), 0))));
+}
+const FAR = ridge(300, 18, [[1, 6], [3, 4], [7, 2], [13, 1]]);   // heights in cells
+const NEAR = ridge(200, 6, [[2, 3], [5, 2], [11, 1]]);
+const GROUND_PERIOD = 1200;
+const SPECKS = Array.from({ length: 160 }, () => ({
+  x: randInt(0, GROUND_PERIOD / P - 1) * P,
+  y: GROUND + randInt(2, (H - GROUND) / P - 1) * P,
+  w: Math.random() < 0.3 ? 2 * P : P,
+  light: Math.random() < 0.35,
+}));
+const STARS = Array.from({ length: 45 }, () => ({
+  x: randInt(0, W / P) * P, y: randInt(1, 30) * P, phase: Math.random() * 6, big: Math.random() < 0.2,
+}));
+const CLOUDS = [{ x: 80, y: 40 }, { x: 420, y: 70 }, { x: 700, y: 30 }];
+
+function drawRidge(heights, color, offset) {
+  ctx.fillStyle = color;
+  offset = Math.round(offset);   // whole pixels only, or the columns get hairline seams
+  const shift = offset % P, start = Math.floor(offset / P);
+  for (let i = 0; i <= W / P + 1; i++) {
+    const h = heights[(start + i) % heights.length];
+    ctx.fillRect(i * P - shift, GROUND - h * P, P, h * P);
+  }
+}
+
+function drawDisc(cx, cy, r, color, cutX = null, cutY = 0) {
+  ctx.fillStyle = color;
+  for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) {
+    if (x * x + y * y > r * r + r) continue;
+    if (cutX !== null && (x - cutX) ** 2 + (y - cutY) ** 2 <= r * r) continue;  // crescent cut-out
+    ctx.fillRect(cx + x * P, cy + y * P, P, P);
+  }
+}
+
+function drawScenery(t) {
+  ctx.fillStyle = skyGradient;
+  ctx.fillRect(0, 0, W, GROUND);
+
+  if (isDark) {
+    for (const s of STARS) {
+      ctx.globalAlpha = 0.45 + 0.55 * Math.abs(Math.sin(t / 900 + s.phase));
+      ctx.fillStyle = pal.star;
+      ctx.fillRect(s.x, s.y, s.big ? P : P / 2, s.big ? P : P / 2);
+    }
+    ctx.globalAlpha = 1;
+    drawDisc(W - 130, 64, 7, pal.sun, 3, -2);
+  } else {
+    drawDisc(W - 130, 64, 7, pal.sun);
+    ctx.globalAlpha = 0.9;
+    for (const c of CLOUDS) {
+      const x = ((c.x - distance * 0.05 - t * 0.008) % (W + 120) + W + 120) % (W + 120) - 60;
+      drawSprite(CLOUD, x, c.y, { W: "cloud" });
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  drawRidge(FAR, pal["mtn-far"], distance * 0.15);
+  drawRidge(NEAR, pal["mtn-near"], distance * 0.4);
+
+  ctx.fillStyle = pal.sand;
+  ctx.fillRect(0, GROUND, W, H - GROUND);
+  ctx.fillStyle = pal["sand-light"];
+  ctx.fillRect(0, GROUND, W, P);
+  const off = distance % GROUND_PERIOD;
+  for (const s of SPECKS) {
+    ctx.fillStyle = s.light ? pal["sand-light"] : pal["sand-dark"];
+    for (const base of [s.x - off, s.x - off + GROUND_PERIOD]) {
+      if (base > -8 && base < W) ctx.fillRect(Math.round(base), s.y, s.w, P);
+    }
+  }
+}
+
+// ---------- game state ----------
+let liz, obstacles, speed, score, distance = 0, best = 0, state = "ready", spawnIn, lastTime, runAnim = 0;
+let keyDuck = false, touchDuck = false;
+let berries, berryIn, mult, multTime, particles, popups;
+const FAST_FALL_GRAVITY = 3 * GRAVITY;   // holding duck mid-air drops you quickly
+
+function reset() {
+  liz = { x: 100, y: GROUND, vy: 0 };   // y = where its feet are
+  obstacles = [];
+  speed = START_SPEED;
+  score = 0;
+  spawnIn = 0.8;
+  berries = [];
+  berryIn = 3 + Math.random() * 3;
+  mult = 1;
+  multTime = 0;
+  particles = [];
+  popups = [];
+}
+
+const onGround = () => liz.y >= GROUND - 0.5;
+const ducking = () => state === "playing" && (keyDuck || touchDuck);
+
+function jump() {
+  if (state === "ready" || state === "over") { reset(); state = "playing"; return; }
+  if (onGround() && !ducking()) liz.vy = JUMP_VELOCITY;
+}
+
+function lizFrame() {
+  if (state !== "playing" || !onGround()) return LIZ_FRAMES[0];
+  const step = Math.floor(runAnim / 36) % 2;
+  return ducking() ? LIZ_DUCK_FRAMES[step] : LIZ_FRAMES[step];
+}
+
+function spawnObstacle() {
+  const bird = score > BIRDS_AFTER_SCORE && Math.random() < 0.3;
+  obstacles.push(bird ? makeBird() : makeRock());
+  // gap scales with speed so jumps stay possible as the game speeds up
+  spawnIn = (0.9 + Math.random() * 0.9) * (START_SPEED / speed) + 0.35;
+}
+
+// pixel-perfect: does any lizard pixel's centre land on an obstacle pixel?
+function hits(o) {
+  const rows = lizFrame(), lw = rows[0].length, lh = rows.length;
+  const lx = liz.x, ly = liz.y - lh * P;
+  if (lx + lw * P < o.x || lx > o.x + o.w * P || liz.y < o.top || ly > o.top + o.h * P) return false;
+  for (let r = 0; r < lh; r++) for (let c = 0; c < lw; c++) {
+    if (rows[r][c] === ".") continue;
+    const gx = Math.floor((lx + c * P + P / 2 - o.x) / P);
+    const gy = Math.floor((ly + r * P + P / 2 - o.top) / P);
+    if (solidAt(o, gx, gy)) return true;
+  }
+  return false;
+}
+
+// ---------- berries & multiplier ----------
+const BERRY_W = BERRY[0].length * P, BERRY_H = BERRY.length * P;
+const berryY = b => BERRY_TOP + Math.round(Math.sin(b.bob) * 1.5) * P;   // gentle pixel bob
+
+function updateBerries(dt) {
+  if ((berryIn -= dt) <= 0) {
+    berries.push({ x: W + 10, bob: Math.random() * 6 });
+    berryIn = 4 + Math.random() * 5;
+  }
+  const rows = lizFrame();
+  const lx = liz.x, ly = liz.y - rows.length * P, lw = rows[0].length * P;
+  for (const b of berries) {
+    b.x -= speed * dt;
+    b.bob += dt * 4;
+    const by = berryY(b);
+    // eating is forgiving: any bounding-box overlap counts
+    if (!b.eaten && lx < b.x + BERRY_W && lx + lw > b.x && ly < by + BERRY_H && liz.y > by) eat(b, by);
+  }
+  berries = berries.filter(b => !b.eaten && b.x + BERRY_W > -10);
+}
+
+function eat(b, by) {
+  b.eaten = true;
+  mult = Math.min(MAX_MULT, mult + 1);
+  multTime = MULT_DURATION;
+  const cx = b.x + BERRY_W / 2, cy = by + BERRY_H / 2;
+  for (let i = 0; i < 14; i++) {
+    const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 160;
+    particles.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60,
+                     life: 0.5 + Math.random() * 0.3, color: Math.random() < 0.7 ? "berry" : "berry-hi" });
+  }
+  popups.push({ x: cx + 20, y: by - 12, text: "×" + mult + "!", life: 0.9, color: "berry" });
+}
+
+function updateEffects(dt) {
+  for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.g ?? 600) * dt; p.life -= dt; }
+  particles = particles.filter(p => p.life > 0);
+  for (const p of popups) { p.y -= 40 * dt; p.life -= dt; }
+  popups = popups.filter(p => p.life > 0);
+}
+
+function drawEffects() {
+  for (const p of particles) {
+    ctx.globalAlpha = Math.min(1, p.life * 2);
+    ctx.fillStyle = pal[p.color];
+    ctx.fillRect(Math.round(p.x / P) * P, Math.round(p.y / P) * P, P, P);
+  }
+  ctx.textAlign = "center";
+  ctx.font = "700 24px ui-monospace, Consolas, monospace";
+  ctx.lineWidth = 5;
+  ctx.lineJoin = "round";
+  for (const p of popups) {
+    ctx.globalAlpha = Math.min(1, p.life * 2);
+    ctx.strokeStyle = pal.panel;
+    ctx.strokeText(p.text, p.x, p.y);
+    ctx.fillStyle = pal[p.color];
+    ctx.fillText(p.text, p.x, p.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// multiplier meter in the top-left corner while a berry boost is active
+function drawMultiplier() {
+  if (mult <= 1) return;
+  const x = 16, y = 14, barW = 96;
+  ctx.fillStyle = pal.panel;
+  ctx.fillRect(x - 6, y - 6, 58 + barW + 12, 44);
+  drawSprite(BERRY, x, y, BERRY_COLORS);
+  ctx.textAlign = "left";
+  ctx.fillStyle = pal.text;
+  ctx.font = "700 20px ui-monospace, Consolas, monospace";
+  ctx.fillText("×" + mult, x + 38, y + 24);
+  const bx = x + 64, by = y + 12;
+  ctx.fillStyle = pal.shadow;
+  ctx.fillRect(bx, by, barW, 8);
+  ctx.fillStyle = pal.berry;
+  ctx.fillRect(bx, by, Math.round(barW * Math.max(0, multTime) / MULT_DURATION / P) * P, 8);
+}
+
+// A bird counts as ducked only if the lizard stayed low on the ground the whole time it was overhead.
+function checkDucks() {
+  const lw = lizFrame()[0].length * P;
+  for (const o of obstacles) {
+    if (o.kind !== "bird" || o.judged) continue;
+    const overhead = o.x < liz.x + lw && o.x + o.w * P > liz.x;
+    if (overhead) {
+      o.seen = true;
+      if (!onGround() || !ducking()) o.notDucked = true;
+    } else if (o.seen) {   // bird has fully passed
+      o.judged = true;
+      if (!o.notDucked) {
+        score += DUCK_BONUS;
+        popups.push({ x: liz.x + lw / 2, y: GROUND - 40, text: "+" + DUCK_BONUS + " DUCK!", life: 1.1, color: "liz-dark" });
+      }
+    }
+  }
+}
+
+function update(dt) {
+  const wasAirborne = !onGround();
+  liz.vy += (ducking() ? FAST_FALL_GRAVITY : GRAVITY) * dt;
+  liz.y += liz.vy * dt;
+  if (liz.y > GROUND) { liz.y = GROUND; liz.vy = 0; }
+  if (wasAirborne && onGround()) dustPuff();
+
+  speed = Math.min(MAX_SPEED, speed + 12 * dt);
+  distance += speed * dt;
+  runAnim += speed * dt;
+  score += speed * dt / 10 * mult;
+
+  if (mult > 1 && (multTime -= dt) <= 0) mult = 1;
+  updateBerries(dt);
+  updateEffects(dt);
+
+  spawnIn -= dt;
+  if (spawnIn <= 0) spawnObstacle();
+  for (const o of obstacles) {
+    o.x -= (speed + o.extraSpeed) * dt;
+    if (o.kind === "bird") o.flap += dt;
+  }
+  obstacles = obstacles.filter(o => o.x + o.w * P > -10);
+
+  const hit = obstacles.find(hits);
+  if (hit) { gameOver(hit.kind); return; }
+  checkDucks();
+}
+
+// little cloud of sand kicked up from under the feet, drifting back with the ground
+function dustPuff() {
+  const lw = lizFrame()[0].length * P;
+  for (let i = 0; i < 16; i++) {
+    const side = Math.random() < 0.5 ? -1 : 1;
+    particles.push({
+      x: liz.x + lw / 2 + side * (lw / 4 + Math.random() * lw / 3), y: GROUND - P,
+      vx: side * (40 + Math.random() * 90) - speed * 0.25, vy: -(50 + Math.random() * 110),
+      g: 320, life: 0.35 + Math.random() * 0.3, color: Math.random() < 0.65 ? "dust" : "dust-2",
+    });
+  }
+}
+
+let deathBy = "rock";
+function gameOver(kind) {
+  state = "over";
+  deathBy = kind;
+  const final = Math.floor(score);
+  if (final > best) { best = final; showScores(); }
+  saveBest(final);
+}
+
+function showScores() {
+  document.getElementById("score").textContent = Math.floor(score);
+  document.getElementById("best").textContent = best;
+}
+
+function overlay(title, sub) {
+  ctx.fillStyle = pal.panel;
+  ctx.fillRect(W / 2 - 200, H / 2 - 72, 400, sub ? 84 : 56);
+  ctx.textAlign = "center";
+  ctx.fillStyle = pal.text;
+  ctx.font = "700 26px ui-monospace, Consolas, monospace";
+  ctx.fillText(title, W / 2, H / 2 - 34);
+  if (sub) {
+    ctx.fillStyle = pal.muted;
+    ctx.font = "16px ui-monospace, Consolas, monospace";
+    ctx.fillText(sub, W / 2, H / 2 - 4);
+  }
+}
+
+function draw(t) {
+  drawScenery(t);
+  for (const o of obstacles) if (o.kind === "rock") drawRock(o);
+  for (const b of berries) drawSprite(BERRY, b.x, berryY(b), BERRY_COLORS);
+
+  // shadow shrinks as the lizard gets higher
+  const rows = lizFrame(), lw = rows[0].length;
+  const lift = Math.min(1, (GROUND - liz.y) / 140);
+  const sw = Math.round(lw - 4 - lift * 6) * P;
+  ctx.fillStyle = pal.shadow;
+  ctx.fillRect(liz.x + 2 * P + ((lw - 4) * P - sw) / 2, GROUND, sw, P);
+
+  drawSprite(rows, liz.x, liz.y - rows.length * P, LIZ_COLORS);
+
+  for (const o of obstacles) if (o.kind === "bird") drawSprite(birdRows(o), o.x, o.top, BIRD_COLORS);
+  drawEffects();
+  drawMultiplier();
+
+  if (state === "ready") overlay("Press Space to start", "Jump rocks, duck birds, eat berries");
+  else if (state === "over") overlay(deathBy === "bird" ? "Nom! Game over" : "Bonk! Game over", "Press Space to try again");
+}
+
+function loop(t) {
+  const dt = Math.min(0.033, (t - (lastTime ?? t)) / 1000);  // cap dt so tab-switching can't teleport
+  lastTime = t;
+  if (state === "playing") { update(dt); showScores(); }
+  draw(t);
+  requestAnimationFrame(loop);
+}
+
+const DUCK_KEYS = ["ArrowDown", "KeyS"];
+document.addEventListener("keydown", e => {
+  if (e.code === "Space") { e.preventDefault(); if (!e.repeat) jump(); }
+  if (DUCK_KEYS.includes(e.code)) { e.preventDefault(); keyDuck = true; }
+});
+document.addEventListener("keyup", e => { if (DUCK_KEYS.includes(e.code)) keyDuck = false; });
+window.addEventListener("blur", () => { keyDuck = touchDuck = false; });
+
+// touch/mouse: top half of the game jumps, holding the bottom half ducks
+canvas.addEventListener("pointerdown", e => {
+  const rect = canvas.getBoundingClientRect();
+  if (state === "playing" && e.clientY > rect.top + rect.height / 2) touchDuck = true;
+  else jump();
+});
+for (const ev of ["pointerup", "pointercancel", "pointerleave"]) {
+  canvas.addEventListener(ev, () => { touchDuck = false; });
+}
+
+// ---------- best score: saved by the FastAPI server, or in the browser for the standalone build ----------
+const SCORE_API = "/api/highscore";   // build.py empties this for the standalone .html
+const LOCAL_KEY = "lizard-leap-best";
+
+function loadBest() {
+  if (SCORE_API) {
+    fetch(SCORE_API).then(r => r.json()).then(d => { best = d.high_score; showScores(); }).catch(() => {});
+  } else {
+    try { best = parseInt(localStorage.getItem(LOCAL_KEY), 10) || 0; } catch { best = 0; }
+    showScores();
+  }
+}
+
+function saveBest(final) {
+  if (SCORE_API) {
+    fetch(SCORE_API, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ score: final }),
+    }).then(r => r.json()).then(d => { best = d.high_score; showScores(); }).catch(() => {});
+  } else {
+    try { if (final >= best) localStorage.setItem(LOCAL_KEY, String(final)); } catch {}
+  }
+}
+
+readPalette();
+reset();
+loadBest();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>"""
+
+
+def pick_port(preferred: int = 8001) -> int:
+    """Use the preferred port if it's free, otherwise let Windows pick any free one."""
+    import socket
+
+    for port in (preferred, 0):
+        with socket.socket() as s:
+            try:
+                s.bind(("127.0.0.1", port))
+                return s.getsockname()[1]
+            except OSError:
+                continue
+    return preferred
+
+
+if __name__ == "__main__":
+    # Starts the game when you double-click game.py (or LizardLeap.exe), or run `python game.py`.
+    import threading
+    import webbrowser
+
+    import uvicorn
+
+    port = pick_port()
+    url = f"http://127.0.0.1:{port}"
+    print("Lizard Leap is running!")
+    print(f"If your browser didn't open, go to {url}")
+    print("Close this window to quit the game.\n")
+    threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+    try:
+        uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    except (Exception, SystemExit) as e:  # uvicorn exits via SystemExit if the port is taken
+        print(f"\nCould not start the server: {e!r}")
+    input("\nServer stopped. Press Enter to close this window...")

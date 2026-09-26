@@ -1,0 +1,8 @@
+{
+  "name": "syllabus-to-trello",
+  "description": "Turn course syllabi into a Trello card plan and matching Google Calendar reminders. Converts relative deadlines into real dates from confirmed anchors, sets personal targets ahead of the official deadlines, flags missing or stale dates, and proposes every card for your review before creating anything. After approval it creates the cards and calendar markers, verifies both, and writes a handoff summary. Your board and calendar details stay in a private profile on your computer.",
+  "version": "1.0.0",
+  "author": {
+    "name": "bb151-pixel"
+  }
+}

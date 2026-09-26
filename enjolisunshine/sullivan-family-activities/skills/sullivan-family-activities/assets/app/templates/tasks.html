@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="tasks-page">
+  <div class="card">
+    <div class="card-head wrap">
+      <span class="head-ic c-blue">{{ icon('check') }}</span>
+      <h2>Tasks</h2>
+      <div class="day-nav">
+        <button class="btn ghost sm" type="button" data-day="today">Today</button>
+        <button class="icon-btn" type="button" data-day="-1" aria-label="Previous day">{{ icon('chevron-left') }}</button>
+        <button class="icon-btn" type="button" data-day="1" aria-label="Next day">{{ icon('chevron-right') }}</button>
+        <span class="day-label" id="tasks-date"></span>
+      </div>
+      <button class="btn primary sm" id="add-task" type="button">{{ icon('plus') }} Task</button>
+    </div>
+    <div class="chips" id="task-chips"></div>
+    <div class="dd-row" id="task-controls"></div>
+    <ul class="task-list grouped" id="task-list"></ul>
+  </div>
+
+  <aside class="card progress-card">
+    <div class="card-head"><h2>Progress</h2></div>
+    <div class="ring-wrap" id="ring"></div>
+    <ul class="progress-list" id="progress-list"></ul>
+  </aside>
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loan Calculator</title>
+  <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Loan Calculator</div>
+  </header>
+
+  <main class="dashboard">
+    <section class="card">
+      <h2>Monthly payment</h2>
+      <p class="hint">Enter the loan amount, annual interest rate, and loan period to calculate the monthly payment.</p>
+      <form id="loan-form" class="calc-form">
+        <label>Loan amount ($)
+          <input type="number" name="loan_amount" step="0.01" min="0.01" required value="20000">
+        </label>
+        <label>Annual interest rate (%)
+          <input type="number" name="interest_rate" step="0.01" min="0" required value="7.5">
+        </label>
+        <label>Loan period (years)
+          <input type="number" name="loan_period_years" step="0.5" min="0.5" required value="5">
+        </label>
+        <button type="submit">Calculate</button>
+      </form>
+      <div id="loan-result" class="result"></div>
+    </section>
+  </main>
+
+  <script src="static/app.js"></script>
+</body>
+</html>

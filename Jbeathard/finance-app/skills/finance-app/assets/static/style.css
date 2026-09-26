@@ -1,0 +1,141 @@
+:root {
+  --bg: #0f172a;
+  --card-bg: #ffffff;
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --text: #1e293b;
+  --muted: #64748b;
+  --error-bg: #fee2e2;
+  --error-text: #991b1b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #f1f5f9;
+  color: var(--text);
+}
+
+.auth-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--bg), #1e3a8a);
+}
+
+.auth-card {
+  background: var(--card-bg);
+  padding: 2.5rem;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+}
+
+.auth-card h1 { margin: 0 0 0.25rem; color: var(--accent-dark); }
+.tagline { color: var(--muted); margin: 0 0 1.5rem; font-size: 0.9rem; }
+
+.tabs { display: flex; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; }
+.tab-btn {
+  flex: 1;
+  padding: 0.6rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--muted);
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.auth-form { display: flex; flex-direction: column; gap: 0.9rem; }
+.auth-form label { font-size: 0.85rem; color: var(--muted); display: flex; flex-direction: column; gap: 0.3rem; }
+.auth-form input {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+.auth-form button, .calc-form button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.7rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+.auth-form button:hover, .calc-form button:hover { background: var(--accent-dark); }
+
+.alert {
+  background: var(--error-bg);
+  color: var(--error-text);
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.fine-print { font-size: 0.75rem; color: var(--muted); margin-top: 1.2rem; text-align: center; }
+
+.topbar {
+  background: var(--bg);
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.brand { font-weight: 700; font-size: 1.2rem; }
+.logout-link { color: #93c5fd; margin-left: 1rem; text-decoration: none; font-size: 0.9rem; }
+.logout-link:hover { text-decoration: underline; }
+
+.dashboard {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+.card h2 { margin-top: 0; color: var(--accent-dark); }
+.hint { color: var(--muted); font-size: 0.85rem; margin-top: -0.3rem; }
+
+.calc-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+  align-items: end;
+}
+.calc-form label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; color: var(--muted); }
+.calc-form input, .calc-form select {
+  padding: 0.55rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.calc-form button { grid-column: 1 / -1; justify-self: start; padding: 0.6rem 1.4rem; }
+
+.result { margin-top: 1rem; font-size: 0.9rem; }
+.result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.8rem; }
+.stat { background: #f8fafc; border-radius: 8px; padding: 0.7rem 0.9rem; }
+.stat .label { display: block; color: var(--muted); font-size: 0.75rem; }
+.stat .value { font-size: 1.1rem; font-weight: 700; color: var(--accent-dark); }
+
+.lender-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.85rem; }
+.lender-table th, .lender-table td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid #e2e8f0; }
+.lender-table th { color: var(--muted); font-weight: 600; }
+.lender-table a { color: var(--accent); }
+
+.error-text { color: var(--error-text); background: var(--error-bg); padding: 0.6rem 0.8rem; border-radius: 8px; }

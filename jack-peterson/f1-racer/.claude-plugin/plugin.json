@@ -1,0 +1,8 @@
+{
+  "name": "f1-racer",
+  "description": "Launch F1 Racer, a browser racing game served by a local FastAPI app. A single Python file holds the server and the whole game page, so there is nothing to build.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jack Peterson"
+  }
+}

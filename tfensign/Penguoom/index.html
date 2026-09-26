@@ -1,0 +1,2834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>PENGUOOM</title>
+<style>
+  html, body {
+    margin: 0; background: #000; overflow: hidden; height: 100%;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  body { display: flex; align-items: center; justify-content: center; }
+  /* #wrap is sized in JS (fitCanvas) to exactly match the letterboxed game
+     rect, so everything inside it (HUD, crosshair, minimap) stays visually
+     locked to the actual rendered canvas instead of the raw viewport edges. */
+  #wrap { position: relative; width: 800px; height: 480px; }
+  canvas#game { image-rendering: pixelated; background: #000; display: block; width: 100%; height: 100%; }
+  #minimap { image-rendering: pixelated; }
+  #overlay {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; color: #eafcff; font-family: 'Courier New', monospace; text-align: center;
+    background: rgba(0,10,20,0.75); z-index: 10; padding: 16px; box-sizing: border-box;
+  }
+  #overlay h1 { font-size: 3rem; letter-spacing: 0.3rem; margin-bottom: 0.2rem; color: #7fe8ff; text-shadow: 0 0 12px #2ad; }
+  #overlay p { max-width: 560px; line-height: 1.5; }
+  #overlay button {
+    margin-top: 1.2rem; font-size: 1.3rem; padding: 0.6rem 1.6rem; cursor: pointer;
+    background: #1b6; border: none; border-radius: 6px; color: #012; font-weight: bold;
+  }
+  #hud {
+    position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between;
+    padding: 10px 18px; font-family: 'Courier New', monospace; color: #eafcff; font-size: 1.1rem;
+    text-shadow: 1px 1px 2px #000; pointer-events: none;
+  }
+  #crosshair {
+    position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+    pointer-events: none;
+  }
+  #crosshair::before, #crosshair::after { content: ""; position: absolute; background: #7fffb0; }
+  #crosshair::before { left: 8px; top: 0; width: 2px; height: 18px; }
+  #crosshair::after { top: 8px; left: 0; width: 18px; height: 2px; }
+  #minimap { position: absolute; top: 12px; right: 12px; border: 2px solid #7fe8ff88; background: rgba(0,10,20,0.5); }
+  #hint { position: absolute; top: 12px; left: 12px; color: #cfefff; font-family: 'Courier New', monospace; font-size: 0.8rem; opacity: 0.8; max-width: 60%; }
+
+  /* Touch controls sit outside #wrap, pinned to the true screen edges (fixed,
+     full viewport) so thumbs can reach them regardless of letterbox size. */
+  #mobileControls {
+    position: fixed; inset: 0; z-index: 6; display: none;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    box-sizing: border-box;
+    /* The container spans the full screen so buttons can sit at its edges,
+       but it must not swallow touches meant for the canvas underneath (that
+       was blocking drag-to-look) — only the individual .touchBtn widgets
+       opt back in to receiving touches. */
+    pointer-events: none;
+  }
+  #mobileControls.active { display: block; }
+  .touchBtn { pointer-events: auto; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; }
+  #joyBase {
+    position: absolute; left: 24px; bottom: 24px; width: 128px; height: 128px; border-radius: 50%;
+    background: rgba(120,190,220,0.15); border: 2px solid rgba(150,220,240,0.4);
+  }
+  #joyKnob {
+    position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
+    background: rgba(180,230,250,0.55); border: 2px solid rgba(220,245,255,0.75);
+  }
+  #fireBtn {
+    position: absolute; right: 26px; bottom: 30px; width: 92px; height: 92px; border-radius: 50%;
+    background: rgba(255,90,70,0.35); border: 3px solid rgba(255,140,120,0.7);
+    color: #fff; font-family: 'Courier New', monospace; font-weight: bold; font-size: 0.95rem;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+  }
+  #fireBtn.pressed { background: rgba(255,90,70,0.65); }
+  #weaponBtns { position: absolute; right: 30px; bottom: 138px; display: flex; flex-direction: column; gap: 8px; }
+  .weaponBtn {
+    width: 52px; height: 52px; border-radius: 10px; background: rgba(20,40,55,0.65); border: 2px solid rgba(150,220,240,0.5);
+    color: #eafcff; font-size: 1.4rem; display: flex; align-items: center; justify-content: center;
+  }
+  .weaponBtn.selected { border-color: #7fffb0; background: rgba(40,90,70,0.65); }
+  #restartBtnMobile {
+    position: absolute; left: 24px; top: 14px; padding: 8px 12px; border-radius: 8px;
+    background: rgba(20,40,55,0.65); border: 2px solid rgba(150,220,240,0.5); color: #eafcff;
+    font-family: 'Courier New', monospace; font-size: 0.85rem;
+  }
+  #rotatePrompt {
+    position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center; background: #030a12; color: #eafcff;
+    font-family: 'Courier New', monospace; padding: 20px; box-sizing: border-box;
+  }
+  #rotatePrompt.show { display: flex; }
+  #rotatePrompt .spin { font-size: 2.6rem; margin-bottom: 0.6rem; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="800" height="480"></canvas>
+  <canvas id="minimap" width="150" height="150"></canvas>
+  <div id="crosshair"></div>
+  <div id="hint">WASD move · mouse to look (aim up/down matters!) · scroll to turn · hold click to fire · 1/2/3 weapon · R restart</div>
+  <div id="hud">
+    <div id="hp">HP: 100</div>
+    <div id="level">Sector 1: Ice Fortress</div>
+    <div id="weapon">Weapon: Fish Blaster</div>
+    <div id="score">Enemies defeated: 0 / 0</div>
+  </div>
+  <div id="overlay">
+    <h1>PENGU&Oslash;&Oslash;M</h1>
+    <p>The Emperor's Guard has seized four sectors of the Ice Fortress, and they brought
+       polar bears. Clear every hostile from each sector before advancing to the next —
+       they get harder, and colder, the deeper you go. Starting on Sector 2, one walrus
+       lurks in every sector: slow, but armored like a tank and hits far harder than a
+       bear — don't get cornered by it.
+       Click to lock your mouse and begin. Press 1/2/3 to switch between the
+       Fish Blaster, Harpoon Cannon, and Flamethrower.</p>
+    <button id="startBtn">ENTER THE ICE</button>
+  </div>
+</div>
+
+<div id="mobileControls">
+  <div id="joyBase" class="touchBtn"><div id="joyKnob"></div></div>
+  <div id="weaponBtns">
+    <div class="touchBtn weaponBtn selected" data-weapon="blaster">&#128031;</div>
+    <div class="touchBtn weaponBtn" data-weapon="harpoon">&#128720;</div>
+    <div class="touchBtn weaponBtn" data-weapon="flamethrower">&#128293;</div>
+  </div>
+  <div id="fireBtn" class="touchBtn">FIRE</div>
+  <div id="restartBtnMobile" class="touchBtn">&#8635; Restart</div>
+</div>
+<div id="rotatePrompt">
+  <div class="spin">&#8635;</div>
+  <p>Rotate your device to landscape<br>to play PENGUOOM.</p>
+</div>
+
+<script>
+"use strict";
+
+// ---------------------------------------------------------------------------
+// Maze generation: randomized DFS carve on an odd-sized grid, then a
+// "loosening" pass knocks out extra walls so it reads as rooms, not corridors.
+// ---------------------------------------------------------------------------
+let MAP_SIZE = 19; // odd, varies per level
+function generateMaze(size, loosenChance) {
+  const grid = new Array(size * size).fill(1);
+  const idx = (x, y) => y * size + x;
+  const inBounds = (x, y) => x > 0 && y > 0 && x < size - 1 && y < size - 1;
+
+  grid[idx(1, 1)] = 0;
+  const stack = [[1, 1]];
+  const dirs = [[2, 0], [-2, 0], [0, 2], [0, -2]];
+
+  while (stack.length) {
+    const [cx, cy] = stack[stack.length - 1];
+    const shuffled = dirs.slice().sort(() => Math.random() - 0.5);
+    let carved = false;
+    for (const [dx, dy] of shuffled) {
+      const nx = cx + dx, ny = cy + dy;
+      if (inBounds(nx, ny) && grid[idx(nx, ny)] === 1) {
+        grid[idx(nx, ny)] = 0;
+        grid[idx(cx + dx / 2, cy + dy / 2)] = 0;
+        stack.push([nx, ny]);
+        carved = true;
+        break;
+      }
+    }
+    if (!carved) stack.pop();
+  }
+
+  // Loosen: knock out extra interior walls to create open rooms and loops.
+  for (let y = 1; y < size - 1; y++) {
+    for (let x = 1; x < size - 1; x++) {
+      if (grid[idx(x, y)] === 1 && Math.random() < loosenChance) grid[idx(x, y)] = 0;
+    }
+  }
+  return grid;
+}
+
+function floodFillOpenCells(grid, size, startX, startY) {
+  const idx = (x, y) => y * size + x;
+  const seen = new Set([idx(startX, startY)]);
+  const queue = [[startX, startY]];
+  const cells = [];
+  while (queue.length) {
+    const [x, y] = queue.shift();
+    cells.push([x, y]);
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx > 0 && ny > 0 && nx < size - 1 && ny < size - 1 && grid[idx(nx, ny)] === 0 && !seen.has(idx(nx, ny))) {
+        seen.add(idx(nx, ny));
+        queue.push([nx, ny]);
+      }
+    }
+  }
+  return cells;
+}
+
+let MAP, mapIdx, openCells;
+function buildLevel(levelConfig) {
+  MAP_SIZE = levelConfig.mazeSize;
+  MAP = generateMaze(MAP_SIZE, levelConfig.loosenChance);
+  mapIdx = (x, y) => y * MAP_SIZE + x;
+  openCells = floodFillOpenCells(MAP, MAP_SIZE, 1, 1);
+}
+
+// ---------------------------------------------------------------------------
+// Enemy sprites: each type is pre-rendered once at startup into a small grid
+// of walk-cycle x expression frames (not just one static image), so legs,
+// flippers and paws swing as the enemy moves, and the face reads as calm or
+// snarling depending on whether it has spotted the player. Everything is
+// still baked into offscreen canvases ahead of time, so render() drops in a
+// single drawImage per enemy per frame — identical cost to the old
+// single-canvas version, just picking from a small array instead of a
+// constant.
+// ---------------------------------------------------------------------------
+const SPRITE_SIZE = 64;
+const ANIM_FRAME_COUNT = 4;
+
+function makeSpriteCanvas() {
+  const c = document.createElement("canvas");
+  c.width = SPRITE_SIZE; c.height = SPRITE_SIZE;
+  return c;
+}
+
+// Renders drawFn at ANIM_FRAME_COUNT evenly-spaced gait phases, for both a
+// calm and an aggressive (spotted-the-player) expression.
+function buildFrameSet(drawFn) {
+  const set = { neutral: [], aggressive: [] };
+  for (const aggressive of [false, true]) {
+    const frames = aggressive ? set.aggressive : set.neutral;
+    for (let i = 0; i < ANIM_FRAME_COUNT; i++) {
+      const phase = (i / ANIM_FRAME_COUNT) * Math.PI * 2;
+      const canvas = makeSpriteCanvas();
+      drawFn(canvas.getContext("2d"), SPRITE_SIZE, phase, aggressive);
+      frames.push(canvas);
+    }
+  }
+  return set;
+}
+
+// Per-type alpha mask, sampled from the neutral standing frame, so hit
+// detection can check "is there actually a sprite pixel under the crosshair"
+// instead of an arbitrary angular tolerance. Legs/flippers only shift a few
+// pixels across the animation, so one reference pose is accurate enough for
+// every frame of that type.
+function buildAlphaMask(canvas) {
+  const c = canvas.getContext("2d");
+  const data = c.getImageData(0, 0, canvas.width, canvas.height).data;
+  const mask = new Uint8Array(canvas.width * canvas.height);
+  for (let i = 0; i < mask.length; i++) mask[i] = data[i * 4 + 3] > 24 ? 1 : 0;
+  return mask;
+}
+
+function drawPenguinFrame(c, s, phase, aggressive) {
+  c.clearRect(0, 0, s, s);
+  const legLift1 = Math.sin(phase) * 0.028;
+  const legLift2 = Math.sin(phase + Math.PI) * 0.028;
+  const wingSwing1 = Math.sin(phase + Math.PI) * 0.22;
+  const wingSwing2 = Math.sin(phase) * 0.22;
+
+  // feet (drawn first, partly covered by body — still fully hittable since
+  // the alpha mask is sampled from the neutral standing frame), alternating
+  // up/down across the gait phase for a waddling walk cycle.
+  c.fillStyle = "#e8830f";
+  c.beginPath(); c.ellipse(s * 0.36, s * (0.94 + legLift1), s * 0.10, s * 0.045, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.64, s * (0.94 + legLift2), s * 0.10, s * 0.045, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#ff9d2f";
+  c.beginPath(); c.ellipse(s * 0.355, s * (0.925 + legLift1), s * 0.085, s * 0.035, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.645, s * (0.925 + legLift2), s * 0.085, s * 0.035, 0, 0, Math.PI * 2); c.fill();
+
+  // body (black, radial-shaded for volume instead of flat fill)
+  const bodyGrad = c.createRadialGradient(s * 0.42, s * 0.46, s * 0.06, s * 0.5, s * 0.58, s * 0.42);
+  bodyGrad.addColorStop(0, "#232b30");
+  bodyGrad.addColorStop(0.55, "#161d21");
+  bodyGrad.addColorStop(1, "#0a0e10");
+  c.fillStyle = bodyGrad;
+  c.beginPath();
+  c.ellipse(s * 0.5, s * 0.58, s * 0.30, s * 0.40, 0, 0, Math.PI * 2);
+  c.fill();
+
+  // belly (white, subtly shaded)
+  const bellyGrad = c.createRadialGradient(s * 0.46, s * 0.48, s * 0.03, s * 0.5, s * 0.62, s * 0.3);
+  bellyGrad.addColorStop(0, "#ffffff");
+  bellyGrad.addColorStop(1, "#dcedf3");
+  c.fillStyle = bellyGrad;
+  c.beginPath();
+  c.ellipse(s * 0.5, s * 0.62, s * 0.18, s * 0.30, 0, 0, Math.PI * 2);
+  c.fill();
+  // faint chest feather lines
+  c.strokeStyle = "rgba(150,180,195,0.35)";
+  c.lineWidth = 0.9;
+  for (let i = 0; i < 3; i++) {
+    c.beginPath();
+    c.ellipse(s * 0.5, s * (0.5 + i * 0.13), s * (0.14 - i * 0.02), s * 0.05, 0, 0, Math.PI);
+    c.stroke();
+  }
+
+  // little wings (behind head, in front of body edge) — swing opposite the
+  // legs so the waddle reads as a real gait instead of a static pose
+  const wingGrad = c.createLinearGradient(s * 0.18, s * 0.4, s * 0.3, s * 0.75);
+  wingGrad.addColorStop(0, "#20282c");
+  wingGrad.addColorStop(1, "#0a0e10");
+  c.fillStyle = wingGrad;
+  c.beginPath(); c.ellipse(s * 0.24, s * 0.58, s * 0.06, s * 0.18, -0.3 + wingSwing1, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.76, s * 0.58, s * 0.06, s * 0.18, 0.3 + wingSwing2, 0, Math.PI * 2); c.fill();
+
+  // head
+  c.fillStyle = "#151b1f";
+  c.beginPath();
+  c.ellipse(s * 0.5, s * 0.24, s * 0.18, s * 0.18, 0, 0, Math.PI * 2);
+  c.fill();
+  // cheek blush
+  c.fillStyle = "rgba(255,205,160,0.28)";
+  c.beginPath(); c.ellipse(s * 0.34, s * 0.27, s * 0.045, s * 0.035, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.66, s * 0.27, s * 0.045, s * 0.035, 0, 0, Math.PI * 2); c.fill();
+  // eyes — wide and round when calm, narrowed to angry slits once it's
+  // spotted the player
+  if (aggressive) {
+    c.strokeStyle = "#000";
+    c.lineWidth = s * 0.028;
+    c.lineCap = "round";
+    c.beginPath(); c.moveTo(s * 0.385, s * 0.205); c.lineTo(s * 0.475, s * 0.225); c.stroke();
+    c.beginPath(); c.moveTo(s * 0.615, s * 0.205); c.lineTo(s * 0.525, s * 0.225); c.stroke();
+  } else {
+    c.fillStyle = "#fff";
+    c.beginPath(); c.ellipse(s * 0.43, s * 0.22, 0.045 * s, 0.05 * s, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(s * 0.57, s * 0.22, 0.045 * s, 0.05 * s, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#000";
+    c.beginPath(); c.ellipse(s * 0.44, s * 0.225, 0.02 * s, 0.025 * s, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(s * 0.56, s * 0.225, 0.02 * s, 0.025 * s, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "rgba(255,255,255,0.8)";
+    c.beginPath(); c.ellipse(s * 0.435, s * 0.215, 0.008 * s, 0.01 * s, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(s * 0.555, s * 0.215, 0.008 * s, 0.01 * s, 0, 0, Math.PI * 2); c.fill();
+  }
+  // beak — flares open in a hiss when aggressive, closed otherwise
+  const beakGrad = c.createLinearGradient(s * 0.44, s * 0.27, s * 0.56, s * 0.31);
+  beakGrad.addColorStop(0, "#ffb654");
+  beakGrad.addColorStop(1, "#e8830f");
+  c.fillStyle = beakGrad;
+  c.beginPath();
+  if (aggressive) {
+    c.moveTo(s * 0.5, s * 0.265);
+    c.lineTo(s * 0.5 - 0.075 * s, s * 0.30);
+    c.lineTo(s * 0.5, s * 0.335);
+    c.lineTo(s * 0.5 + 0.075 * s, s * 0.30);
+  } else {
+    c.moveTo(s * 0.5, s * 0.27);
+    c.lineTo(s * 0.5 - 0.06 * s, s * 0.31);
+    c.lineTo(s * 0.5 + 0.06 * s, s * 0.31);
+  }
+  c.closePath();
+  c.fill();
+  if (aggressive) {
+    c.fillStyle = "#7a1c14";
+    c.beginPath(); c.ellipse(s * 0.5, s * 0.30, s * 0.025, s * 0.018, 0, 0, Math.PI * 2); c.fill();
+  }
+  // thin outline for definition (also fills in anti-aliased edge pixels into the hit mask)
+  c.strokeStyle = "rgba(0,0,0,0.35)";
+  c.lineWidth = 1;
+  c.beginPath();
+  c.ellipse(s * 0.5, s * 0.58, s * 0.30, s * 0.40, 0, 0, Math.PI * 2);
+  c.stroke();
+}
+
+function drawPolarBearFrame(c, s, phase, aggressive) {
+  c.clearRect(0, 0, s, s);
+  const legLift1 = Math.sin(phase) * 0.022;
+  const legLift2 = Math.sin(phase + Math.PI) * 0.022;
+
+  // paws (with claws), alternating up/down across the gait phase
+  c.fillStyle = "#c7d3d8";
+  c.beginPath(); c.ellipse(s * 0.30, s * (0.94 + legLift1), s * 0.13, s * 0.065, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.70, s * (0.94 + legLift2), s * 0.13, s * 0.065, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#dfe8ec";
+  c.beginPath(); c.ellipse(s * 0.30, s * (0.925 + legLift1), s * 0.115, s * 0.05, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.70, s * (0.925 + legLift2), s * 0.115, s * 0.05, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#4a4f53";
+  for (const px of [0.22, 0.30, 0.38, 0.62, 0.70, 0.78]) {
+    const lift = px < 0.5 ? legLift1 : legLift2;
+    c.beginPath(); c.ellipse(s * px, s * (0.96 + lift), s * 0.012, s * 0.018, 0, 0, Math.PI * 2); c.fill();
+  }
+
+  // body, radially shaded so it reads as round fur rather than a flat disc
+  const bodyGrad = c.createRadialGradient(s * 0.4, s * 0.5, s * 0.08, s * 0.5, s * 0.62, s * 0.42);
+  bodyGrad.addColorStop(0, "#ffffff");
+  bodyGrad.addColorStop(0.6, "#eef4f6");
+  bodyGrad.addColorStop(1, "#c9d5da");
+  c.fillStyle = bodyGrad;
+  c.beginPath(); c.ellipse(s * 0.5, s * 0.62, s * 0.37, s * 0.33, 0, 0, Math.PI * 2); c.fill();
+  // fur texture flecks
+  c.strokeStyle = "rgba(190,205,212,0.4)";
+  c.lineWidth = 0.8;
+  for (let i = 0; i < 14; i++) {
+    const fx = s * (0.22 + Math.random() * 0.56);
+    const fy = s * (0.42 + Math.random() * 0.42);
+    c.beginPath(); c.moveTo(fx, fy); c.lineTo(fx + s * 0.02, fy + s * 0.03); c.stroke();
+  }
+  // belly shading
+  c.fillStyle = "#dce7eb";
+  c.beginPath(); c.ellipse(s * 0.5, s * 0.80, s * 0.28, s * 0.11, 0, 0, Math.PI * 2); c.fill();
+
+  // head
+  const headGrad = c.createRadialGradient(s * 0.44, s * 0.24, s * 0.04, s * 0.5, s * 0.31, s * 0.24);
+  headGrad.addColorStop(0, "#ffffff");
+  headGrad.addColorStop(1, "#e4ecef");
+  c.fillStyle = headGrad;
+  c.beginPath(); c.ellipse(s * 0.5, s * 0.31, s * 0.22, s * 0.20, 0, 0, Math.PI * 2); c.fill();
+  // ears
+  c.fillStyle = "#dbe4e8";
+  c.beginPath(); c.ellipse(s * 0.34, s * 0.16, s * 0.065, s * 0.065, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.66, s * 0.16, s * 0.065, s * 0.065, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#eef4f6";
+  c.beginPath(); c.ellipse(s * 0.34, s * 0.165, s * 0.04, s * 0.04, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.66, s * 0.165, s * 0.04, s * 0.04, 0, 0, Math.PI * 2); c.fill();
+  // snout
+  c.fillStyle = "#eef4f6";
+  c.beginPath(); c.ellipse(s * 0.5, s * 0.40, s * 0.12, s * 0.09, 0, 0, Math.PI * 2); c.fill();
+  // nose
+  c.fillStyle = "#20242a";
+  c.beginPath(); c.ellipse(s * 0.5, s * 0.40, s * 0.045, s * 0.035, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "rgba(255,255,255,0.5)";
+  c.beginPath(); c.ellipse(s * 0.49, s * 0.39, s * 0.012, s * 0.008, 0, 0, Math.PI * 2); c.fill();
+  // mouth — roaring open with teeth and a furrowed brow when aggressive,
+  // otherwise the calm closed-mouth line
+  if (aggressive) {
+    c.fillStyle = "#3a1410";
+    c.beginPath();
+    c.moveTo(s * 0.5, s * 0.435);
+    c.quadraticCurveTo(s * 0.40, s * 0.50, s * 0.42, s * 0.575);
+    c.quadraticCurveTo(s * 0.5, s * 0.605, s * 0.58, s * 0.575);
+    c.quadraticCurveTo(s * 0.60, s * 0.50, s * 0.5, s * 0.435);
+    c.closePath();
+    c.fill();
+    c.fillStyle = "#b33";
+    c.beginPath(); c.ellipse(s * 0.5, s * 0.55, s * 0.05, s * 0.03, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#fff";
+    for (const tx of [0.45, 0.5, 0.55]) {
+      c.beginPath(); c.moveTo(s * tx, s * 0.45); c.lineTo(s * (tx - 0.018), s * 0.475); c.lineTo(s * (tx + 0.018), s * 0.475); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(s * tx, s * 0.58); c.lineTo(s * (tx - 0.018), s * 0.555); c.lineTo(s * (tx + 0.018), s * 0.555); c.closePath(); c.fill();
+    }
+    c.strokeStyle = "#8a9298"; c.lineWidth = s * 0.02; c.lineCap = "round";
+    c.beginPath(); c.moveTo(s * 0.34, s * 0.235); c.lineTo(s * 0.42, s * 0.255); c.stroke();
+    c.beginPath(); c.moveTo(s * 0.66, s * 0.235); c.lineTo(s * 0.58, s * 0.255); c.stroke();
+  } else {
+    c.strokeStyle = "#20242a";
+    c.lineWidth = 1;
+    c.beginPath(); c.moveTo(s * 0.5, s * 0.435); c.lineTo(s * 0.5, s * 0.46); c.stroke();
+    c.beginPath(); c.moveTo(s * 0.5, s * 0.46); c.quadraticCurveTo(s * 0.46, s * 0.475, s * 0.44, s * 0.465); c.stroke();
+    c.beginPath(); c.moveTo(s * 0.5, s * 0.46); c.quadraticCurveTo(s * 0.54, s * 0.475, s * 0.56, s * 0.465); c.stroke();
+  }
+  // eyes
+  c.fillStyle = "#20242a";
+  c.beginPath(); c.ellipse(s * 0.40, s * (aggressive ? 0.285 : 0.28), s * 0.025, s * (aggressive ? 0.022 : 0.03), 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.60, s * (aggressive ? 0.285 : 0.28), s * 0.025, s * (aggressive ? 0.022 : 0.03), 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "rgba(255,255,255,0.7)";
+  c.beginPath(); c.ellipse(s * 0.395, s * 0.272, s * 0.008, s * 0.009, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.595, s * 0.272, s * 0.008, s * 0.009, 0, 0, Math.PI * 2); c.fill();
+  // subtle outline for definition
+  c.strokeStyle = "rgba(120,140,150,0.3)";
+  c.lineWidth = 1;
+  c.beginPath(); c.ellipse(s * 0.5, s * 0.62, s * 0.37, s * 0.33, 0, 0, Math.PI * 2); c.stroke();
+}
+
+function drawWalrusFrame(c, s, phase, aggressive) {
+  c.clearRect(0, 0, s, s);
+  const legLift1 = Math.sin(phase) * 0.016;
+  const legLift2 = Math.sin(phase + Math.PI) * 0.016;
+
+  // flippers — short and stubby, barely lifting as it shuffles along
+  c.fillStyle = "#7a6650";
+  c.beginPath(); c.ellipse(s * 0.28, s * (0.95 + legLift1), s * 0.15, s * 0.06, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.72, s * (0.95 + legLift2), s * 0.15, s * 0.06, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#8d7a62";
+  c.beginPath(); c.ellipse(s * 0.28, s * (0.935 + legLift1), s * 0.13, s * 0.045, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.72, s * (0.935 + legLift2), s * 0.13, s * 0.045, 0, 0, Math.PI * 2); c.fill();
+
+  // body: big barrel-shaped bulk, radially shaded
+  const bodyGrad = c.createRadialGradient(s * 0.4, s * 0.5, s * 0.08, s * 0.5, s * 0.64, s * 0.46);
+  bodyGrad.addColorStop(0, "#b09070");
+  bodyGrad.addColorStop(0.6, "#8d7359");
+  bodyGrad.addColorStop(1, "#5f4c3a");
+  c.fillStyle = bodyGrad;
+  c.beginPath(); c.ellipse(s * 0.5, s * 0.64, s * 0.40, s * 0.34, 0, 0, Math.PI * 2); c.fill();
+  // blubbery fold lines
+  c.strokeStyle = "rgba(90,72,54,0.4)";
+  c.lineWidth = 1;
+  for (let i = 0; i < 4; i++) {
+    c.beginPath();
+    c.ellipse(s * 0.5, s * (0.55 + i * 0.09), s * (0.30 - i * 0.02), s * 0.05, 0, 0, Math.PI);
+    c.stroke();
+  }
+  // belly shading
+  c.fillStyle = "#c9ac8c";
+  c.beginPath(); c.ellipse(s * 0.5, s * 0.82, s * 0.30, s * 0.10, 0, 0, Math.PI * 2); c.fill();
+
+  // head
+  const headGrad = c.createRadialGradient(s * 0.44, s * 0.26, s * 0.04, s * 0.5, s * 0.33, s * 0.26);
+  headGrad.addColorStop(0, "#b8996f");
+  headGrad.addColorStop(1, "#8d7359");
+  c.fillStyle = headGrad;
+  c.beginPath(); c.ellipse(s * 0.5, s * 0.33, s * 0.23, s * 0.21, 0, 0, Math.PI * 2); c.fill();
+
+  // whiskers
+  c.strokeStyle = "rgba(40,30,20,0.5)";
+  c.lineWidth = 0.8;
+  for (const wy of [-0.02, 0, 0.02, 0.04]) {
+    c.beginPath(); c.moveTo(s * 0.42, s * (0.42 + wy)); c.lineTo(s * 0.27, s * (0.40 + wy)); c.stroke();
+    c.beginPath(); c.moveTo(s * 0.58, s * (0.42 + wy)); c.lineTo(s * 0.73, s * (0.40 + wy)); c.stroke();
+  }
+
+  // eyes: small and deep-set
+  c.fillStyle = "#1a1410";
+  c.beginPath(); c.ellipse(s * 0.40, s * 0.28, s * 0.022, s * 0.026, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.60, s * 0.28, s * 0.022, s * 0.026, 0, 0, Math.PI * 2); c.fill();
+  if (aggressive) {
+    c.strokeStyle = "#3a2c1c"; c.lineWidth = s * 0.022; c.lineCap = "round";
+    c.beginPath(); c.moveTo(s * 0.33, s * 0.235); c.lineTo(s * 0.42, s * 0.255); c.stroke();
+    c.beginPath(); c.moveTo(s * 0.67, s * 0.235); c.lineTo(s * 0.58, s * 0.255); c.stroke();
+  }
+
+  // mouth: bellowing open when aggressive, a closed line otherwise
+  if (aggressive) {
+    c.fillStyle = "#4a1f18";
+    c.beginPath(); c.ellipse(s * 0.5, s * 0.46, s * 0.09, s * 0.06, 0, 0, Math.PI * 2); c.fill();
+  } else {
+    c.strokeStyle = "#3a2c1c"; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(s * 0.44, s * 0.44); c.quadraticCurveTo(s * 0.5, s * 0.455, s * 0.56, s * 0.44); c.stroke();
+  }
+
+  // tusks — hang further and gleam brighter when aggressive
+  const tuskLen = aggressive ? 0.30 : 0.24;
+  const tuskGrad = c.createLinearGradient(0, s * 0.42, 0, s * (0.42 + tuskLen));
+  tuskGrad.addColorStop(0, "#fffbe8");
+  tuskGrad.addColorStop(1, "#e8dcb8");
+  c.fillStyle = tuskGrad;
+  for (const side of [-1, 1]) {
+    c.beginPath();
+    c.moveTo(s * (0.5 + side * 0.09), s * 0.44);
+    c.quadraticCurveTo(s * (0.5 + side * 0.135), s * (0.44 + tuskLen * 0.6), s * (0.5 + side * 0.095), s * (0.44 + tuskLen));
+    c.lineTo(s * (0.5 + side * 0.055), s * (0.44 + tuskLen * 0.92));
+    c.quadraticCurveTo(s * (0.5 + side * 0.075), s * (0.44 + tuskLen * 0.5), s * (0.5 + side * 0.05), s * 0.44);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = "rgba(120,100,60,0.4)"; c.lineWidth = 0.8; c.stroke();
+  }
+
+  // outline for definition
+  c.strokeStyle = "rgba(60,45,30,0.35)";
+  c.lineWidth = 1;
+  c.beginPath(); c.ellipse(s * 0.5, s * 0.64, s * 0.40, s * 0.34, 0, 0, Math.PI * 2); c.stroke();
+}
+
+// Small, low-slung and fast — drawn in profile (unlike the front-on
+// penguin/bear/walrus) with an elongated body and a black-tipped tail so its
+// silhouette reads as a quick weasel-like animal even at its tiny on-screen
+// size.
+function drawStoatFrame(c, s, phase, aggressive) {
+  c.clearRect(0, 0, s, s);
+  const legLift1 = Math.sin(phase * 2) * 0.05;
+  const legLift2 = Math.sin(phase * 2 + Math.PI) * 0.05;
+
+  // quick little legs, high-frequency scurry
+  c.fillStyle = "#c9c4b6";
+  c.beginPath(); c.ellipse(s * 0.34, s * (0.87 + legLift1), s * 0.05, s * 0.035, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.66, s * (0.87 + legLift2), s * 0.05, s * 0.035, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.42, s * (0.91 + legLift2), s * 0.045, s * 0.03, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.58, s * (0.91 + legLift1), s * 0.045, s * 0.03, 0, 0, Math.PI * 2); c.fill();
+
+  // tail, curled up behind it — white like the rest of its winter coat, but
+  // keeping the black tip real ermines have even after they turn white.
+  c.strokeStyle = "#eeece4"; c.lineWidth = s * 0.075; c.lineCap = "round";
+  c.beginPath(); c.moveTo(s * 0.80, s * 0.76); c.quadraticCurveTo(s * 0.97, s * 0.70, s * 0.93, s * 0.50); c.stroke();
+  c.fillStyle = "#181410";
+  c.beginPath(); c.ellipse(s * 0.935, s * 0.485, s * 0.05, s * 0.06, 0.3, 0, Math.PI * 2); c.fill();
+
+  // body: long, low barrel — white winter coat over a slightly brighter belly
+  const bodyGrad = c.createLinearGradient(s * 0.5, s * 0.54, s * 0.5, s * 0.84);
+  bodyGrad.addColorStop(0, "#f7f6f0");
+  bodyGrad.addColorStop(1, "#d6d2c4");
+  c.fillStyle = bodyGrad;
+  c.beginPath(); c.ellipse(s * 0.52, s * 0.70, s * 0.34, s * 0.18, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#ffffff";
+  c.beginPath(); c.ellipse(s * 0.52, s * 0.80, s * 0.24, s * 0.075, 0, 0, Math.PI * 2); c.fill();
+
+  // head: small and narrow-snouted, alert
+  const headGrad = c.createRadialGradient(s * 0.24, s * 0.48, s * 0.02, s * 0.27, s * 0.52, s * 0.16);
+  headGrad.addColorStop(0, "#fbfaf6");
+  headGrad.addColorStop(1, "#dcd8ca");
+  c.fillStyle = headGrad;
+  c.beginPath(); c.ellipse(s * 0.28, s * 0.52, s * 0.16, s * 0.125, -0.15, 0, Math.PI * 2); c.fill();
+  // ears
+  c.fillStyle = "#d6d2c4";
+  c.beginPath(); c.ellipse(s * 0.22, s * 0.42, s * 0.032, s * 0.032, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.33, s * 0.40, s * 0.032, s * 0.032, 0, 0, Math.PI * 2); c.fill();
+  // snout tip / nose
+  c.fillStyle = "#211a12";
+  c.beginPath(); c.ellipse(s * 0.15, s * 0.545, s * 0.028, s * 0.022, 0, 0, Math.PI * 2); c.fill();
+  // whiskers
+  c.strokeStyle = "rgba(30,20,10,0.5)"; c.lineWidth = 0.7;
+  for (const wy of [-0.02, 0, 0.02]) {
+    c.beginPath(); c.moveTo(s * 0.19, s * (0.555 + wy)); c.lineTo(s * 0.05, s * (0.535 + wy)); c.stroke();
+  }
+  // eyes: bright and beady, flare red when it's spotted the player
+  c.fillStyle = aggressive ? "#ff5a3a" : "#1a1410";
+  c.beginPath(); c.ellipse(s * 0.25, s * 0.485, s * 0.025, s * 0.028, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "rgba(255,255,255,0.75)";
+  c.beginPath(); c.ellipse(s * 0.245, s * 0.478, s * 0.008, s * 0.009, 0, 0, Math.PI * 2); c.fill();
+  if (aggressive) {
+    c.fillStyle = "#fff";
+    c.beginPath(); c.moveTo(s * 0.16, s * 0.565); c.lineTo(s * 0.12, s * 0.605); c.lineTo(s * 0.19, s * 0.585); c.closePath(); c.fill();
+  }
+  // subtle outline for definition (also fills anti-aliased edge pixels into
+  // the hit mask) — a cool gray rather than the old brown, so a white coat
+  // still reads as a distinct silhouette against pale snow/ice floors.
+  c.strokeStyle = "rgba(120,120,110,0.35)";
+  c.lineWidth = 1;
+  c.beginPath(); c.ellipse(s * 0.52, s * 0.70, s * 0.34, s * 0.18, 0, 0, Math.PI * 2); c.stroke();
+}
+
+const penguinFrames = buildFrameSet(drawPenguinFrame);
+const polarBearFrames = buildFrameSet(drawPolarBearFrame);
+const walrusFrames = buildFrameSet(drawWalrusFrame);
+const stoatFrames = buildFrameSet(drawStoatFrame);
+const penguinAlphaMask = buildAlphaMask(penguinFrames.neutral[0]);
+const polarBearAlphaMask = buildAlphaMask(polarBearFrames.neutral[0]);
+const walrusAlphaMask = buildAlphaMask(walrusFrames.neutral[0]);
+const stoatAlphaMask = buildAlphaMask(stoatFrames.neutral[0]);
+
+// ---------------------------------------------------------------------------
+// Static decoration props (Christmas trees, gifts, candy canes, ...): drawn
+// once into a canvas the same way an enemy sprite frame is, then billboarded
+// by renderSprites alongside enemies (see levelProps / level.decor) — but
+// with no AI, HP, or collision, since they're purely atmospheric set
+// dressing for the sectors that opt into them.
+// ---------------------------------------------------------------------------
+function makePropCanvas(drawFn) {
+  const canvas = makeSpriteCanvas();
+  drawFn(canvas.getContext("2d"), SPRITE_SIZE);
+  return canvas;
+}
+
+function drawStar(c, cx, cy, outerR, innerR, points) {
+  c.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const a = (Math.PI / points) * i - Math.PI / 2;
+    const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+  }
+  c.closePath();
+  c.fill();
+}
+
+function drawTreeProp(c, s) {
+  c.clearRect(0, 0, s, s);
+  c.fillStyle = "#4a2f18";
+  c.fillRect(s * 0.44, s * 0.87, s * 0.12, s * 0.13);
+  const tiers = [
+    { y: 0.87, w: 0.46, h: 0.20 },
+    { y: 0.69, w: 0.36, h: 0.22 },
+    { y: 0.49, w: 0.26, h: 0.24 },
+  ];
+  const lightColors = ["#ff5a4a", "#ffd24a", "#5ac8ff"];
+  let li = 0;
+  for (const t of tiers) {
+    const grad = c.createLinearGradient(s * 0.5, s * (t.y - t.h), s * 0.5, s * t.y);
+    grad.addColorStop(0, "#2f6b3a");
+    grad.addColorStop(1, "#173d20");
+    c.fillStyle = grad;
+    c.beginPath();
+    c.moveTo(s * 0.5, s * (t.y - t.h));
+    c.lineTo(s * (0.5 - t.w), s * t.y);
+    c.lineTo(s * (0.5 + t.w), s * t.y);
+    c.closePath();
+    c.fill();
+    // snow dusting along the tier's lower edge
+    c.fillStyle = "rgba(255,255,255,0.55)";
+    c.beginPath();
+    c.moveTo(s * (0.5 - t.w * 0.9), s * (t.y - 0.01));
+    c.quadraticCurveTo(s * 0.5, s * (t.y - t.h * 0.12), s * (0.5 + t.w * 0.9), s * (t.y - 0.01));
+    c.quadraticCurveTo(s * 0.5, s * (t.y + 0.015), s * (0.5 - t.w * 0.9), s * (t.y - 0.01));
+    c.fill();
+    // ornament lights
+    for (let i = 0; i < 4; i++) {
+      const lx = 0.5 + (Math.random() * 2 - 1) * t.w * 0.7;
+      const ly = t.y - Math.random() * t.h * 0.75 - 0.02;
+      c.fillStyle = lightColors[li % lightColors.length]; li++;
+      c.beginPath(); c.arc(s * lx, s * ly, s * 0.015, 0, Math.PI * 2); c.fill();
+    }
+  }
+  c.fillStyle = "#ffe066";
+  drawStar(c, s * 0.5, s * 0.455, s * 0.05, s * 0.02, 5);
+}
+
+function drawGiftProp(c, s) {
+  c.clearRect(0, 0, s, s);
+  const combos = [["#c9432b", "#ffd24a"], ["#2a6b8a", "#e9dcc0"], ["#3a7d44", "#ffd24a"]];
+  const [boxColor, ribbonColor] = combos[Math.floor(Math.random() * combos.length)];
+  c.fillStyle = boxColor;
+  c.fillRect(s * 0.34, s * 0.66, s * 0.32, s * 0.26);
+  c.fillStyle = ribbonColor;
+  c.fillRect(s * 0.34, s * 0.765, s * 0.32, s * 0.045);
+  c.fillRect(s * 0.475, s * 0.66, s * 0.05, s * 0.26);
+  c.beginPath(); c.ellipse(s * 0.44, s * 0.655, s * 0.045, s * 0.03, 0.5, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.56, s * 0.655, s * 0.045, s * 0.03, -0.5, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = "rgba(0,0,0,0.25)"; c.lineWidth = 1;
+  c.strokeRect(s * 0.34, s * 0.66, s * 0.32, s * 0.26);
+}
+
+function drawCandyCaneProp(c, s) {
+  c.clearRect(0, 0, s, s);
+  c.strokeStyle = "#e9e2d4"; c.lineWidth = s * 0.09; c.lineCap = "round";
+  c.beginPath();
+  c.moveTo(s * 0.5, s * 0.92);
+  c.lineTo(s * 0.5, s * 0.5);
+  c.quadraticCurveTo(s * 0.5, s * 0.30, s * 0.36, s * 0.30);
+  c.stroke();
+  c.save();
+  c.setLineDash([s * 0.065, s * 0.065]);
+  c.strokeStyle = "#c9432b"; c.lineWidth = s * 0.09;
+  c.beginPath();
+  c.moveTo(s * 0.5, s * 0.92);
+  c.lineTo(s * 0.5, s * 0.5);
+  c.quadraticCurveTo(s * 0.5, s * 0.30, s * 0.36, s * 0.30);
+  c.stroke();
+  c.restore();
+  // little sprig of holly at the base
+  c.fillStyle = "#2f6b3a";
+  c.beginPath(); c.ellipse(s * 0.44, s * 0.90, s * 0.05, s * 0.03, 0.6, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(s * 0.56, s * 0.90, s * 0.05, s * 0.03, -0.6, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#c9432b";
+  c.beginPath(); c.arc(s * 0.5, s * 0.905, s * 0.018, 0, Math.PI * 2); c.fill();
+}
+
+const PROP_CANVASES = {
+  tree: makePropCanvas(drawTreeProp),
+  gift: makePropCanvas(drawGiftProp),
+  candycane: makePropCanvas(drawCandyCaneProp),
+};
+
+// Picks the current walk-cycle/expression frame for an enemy: aggressive
+// once it has spotted the player (e.aware, set in the AI update), calm
+// otherwise, stepping through the gait frames as e.animPhase advances.
+function currentSpriteFrame(stats, e) {
+  const frames = stats.frames[e.aware ? "aggressive" : "neutral"];
+  const t = e.animPhase - Math.floor(e.animPhase);
+  const idx = Math.min(ANIM_FRAME_COUNT - 1, Math.floor(t * ANIM_FRAME_COUNT));
+  return frames[idx];
+}
+
+// wanderSpeedMult scales `speed` down for idle roaming, so the chase/charge
+// speed already tuned for difficulty stays exactly as it was — a polar bear's
+// charge is literally 2x its own lumber speed, per wanderSpeedMult: 0.5.
+const ENEMY_TYPES = {
+  penguin: { hp: 2, speed: 1.1, damage: 8, detect: 8, attackRange: 0.6, attackCooldown: 700, frames: penguinFrames, alphaMask: penguinAlphaMask, scale: 0.9, wanderSpeedMult: 0.35, wanderInterval: [1.2, 3.0], wanderPauseChance: 0.25 },
+  polarbear: { hp: 6, speed: 0.85, damage: 20, detect: 9, attackRange: 0.85, attackCooldown: 900, frames: polarBearFrames, alphaMask: polarBearAlphaMask, scale: 1.35, wanderSpeedMult: 0.5, wanderInterval: [2.0, 4.0], wanderPauseChance: 0.35 },
+  // Very slow, but ~3x a polar bear's HP (so ~3x harder to kill) and hits
+  // considerably harder — one spawns per sector from Sector 2 onward.
+  walrus: { hp: 18, speed: 0.45, damage: 34, detect: 7, attackRange: 1.0, attackCooldown: 1300, frames: walrusFrames, alphaMask: walrusAlphaMask, scale: 1.65, wanderSpeedMult: 0.35, wanderInterval: [3.0, 6.0], wanderPauseChance: 0.45 },
+  // Small, weak (one hit from any weapon kills it) and cheap to have a lot
+  // of, but by far the fastest thing in the game — see the zig-zag "dodge"
+  // steering carved out for e.type === "stoat" in the AI update below. Its
+  // tiny scale also shrinks its pixel-hit alpha mask to match, so it's a
+  // genuinely small target rather than just a reskinned penguin.
+  stoat: { hp: 1, speed: 2.2, damage: 6, detect: 10, attackRange: 0.5, attackCooldown: 450, frames: stoatFrames, alphaMask: stoatAlphaMask, scale: 0.42, wanderSpeedMult: 0.6, wanderInterval: [0.6, 1.6], wanderPauseChance: 0.15 },
+};
+
+// ---------------------------------------------------------------------------
+// Game state
+// ---------------------------------------------------------------------------
+const canvas = document.getElementById("game");
+// Coarse-pointer devices (phones/tablets) get a lower internal render
+// resolution — the raycaster redraws every screen column every frame, so
+// fewer columns keeps frame rate smooth on weaker mobile GPUs/CPUs. It's
+// still upscaled to fill the screen (see fitCanvas), same pixelated look.
+const isTouch = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+// isTouch alone false-positives in plenty of non-phone contexts (a desktop
+// browser reporting a coarse pointer/touch points inside an embedded or
+// remote-rendered view, a touchscreen laptop, ...), which is harmless for
+// isTouch's other uses (just adds on-screen controls) but not for the
+// rotate-device prompt below, which actively blocks play — so that one also
+// requires an actual mobile OS in the user agent.
+const isMobileUA = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent);
+if (isTouch) { canvas.width = 640; canvas.height = 384; }
+const ctx = canvas.getContext("2d");
+const SCREEN_W = canvas.width, SCREEN_H = canvas.height;
+const FOV_PLANE = 0.66;
+
+const mmCanvas = document.getElementById("minimap");
+const mmCtx = mmCanvas.getContext("2d");
+
+const hpEl = document.getElementById("hp");
+const levelEl = document.getElementById("level");
+const weaponEl = document.getElementById("weapon");
+const scoreEl = document.getElementById("score");
+const overlay = document.getElementById("overlay");
+const startBtn = document.getElementById("startBtn");
+const wrapEl = document.getElementById("wrap");
+const hintEl = document.getElementById("hint");
+const mobileControlsEl = document.getElementById("mobileControls");
+const joyBaseEl = document.getElementById("joyBase");
+const joyKnobEl = document.getElementById("joyKnob");
+const fireBtnEl = document.getElementById("fireBtn");
+const weaponBtnEls = Array.from(document.querySelectorAll(".weaponBtn"));
+const restartBtnMobileEl = document.getElementById("restartBtnMobile");
+const rotatePromptEl = document.getElementById("rotatePrompt");
+
+// ---------------------------------------------------------------------------
+// Responsive layout: #wrap is sized to the largest box matching the game's
+// aspect ratio that fits the viewport, and centered by the body's flex
+// styles — so HUD/crosshair/minimap (children of #wrap) always line up with
+// the actual rendered canvas instead of the raw window edges.
+// ---------------------------------------------------------------------------
+function fitCanvas() {
+  const scale = Math.min(window.innerWidth / SCREEN_W, window.innerHeight / SCREEN_H);
+  wrapEl.style.width = Math.floor(SCREEN_W * scale) + "px";
+  wrapEl.style.height = Math.floor(SCREEN_H * scale) + "px";
+}
+function updateOrientationPrompt() {
+  const portrait = window.innerHeight > window.innerWidth;
+  rotatePromptEl.classList.toggle("show", isTouch && isMobileUA && portrait);
+}
+function onViewportChange() {
+  fitCanvas();
+  updateOrientationPrompt();
+}
+window.addEventListener("resize", onViewportChange);
+window.addEventListener("orientationchange", () => setTimeout(onViewportChange, 60));
+onViewportChange();
+
+if (isTouch) {
+  mobileControlsEl.classList.add("active");
+  // isTouch is a device guess that also fires on touchscreen-equipped PCs, so
+  // this only adds the touch controls to the hint rather than replacing the
+  // keyboard/mouse ones — both schemes work at once regardless of the guess.
+  hintEl.textContent = "WASD or left pad: move · mouse or drag screen: look · click or FIRE button: shoot · 1/2/3 or tap a weapon icon · R restart";
+}
+
+const WEAPONS = {
+  blaster: { name: "Fish Blaster", mode: "semi", damage: 1, cooldown: 280, range: 14, bodyColor: "#274b63", barrelColor: "#3a6f8f" },
+  harpoon: { name: "Harpoon Cannon", mode: "semi", damage: 4, cooldown: 750, range: 18, bodyColor: "#4a3320", barrelColor: "#8a5a2b" },
+  flamethrower: { name: "Flamethrower", mode: "auto", dps: 5, range: 4.5, flameHalfWidth: 85, fuelDrain: 40, fuelRegen: 22, maxFuel: 100, bodyColor: "#5c1f16", barrelColor: "#c9432b" },
+};
+
+// ---------------------------------------------------------------------------
+// Levels: each sector has its own maze shape, wall/floor/ceiling palette,
+// fog falloff, ambient decoration, and enemy pressure. Floor/ceiling art is
+// generated once per level into offscreen canvases/patterns (see
+// buildLevelAssets) so render() stays a handful of cheap draw calls.
+// ---------------------------------------------------------------------------
+const LEVELS = [
+  {
+    name: "Ice Fortress", mazeSize: 17, loosenChance: 0.22,
+    sky: ["#0a1a2e", "#1c3a55"], floorColor: "#cfd9dd", floorShade: "#9fb3bd",
+    wallLow: [120, 190, 230], wallHigh: [165, 222, 250],
+    fogColor: [10, 22, 38], fogDensity: 14,
+    floorSpeckles: [{ color: "rgba(150,190,210,0.5)", count: 90, size: [0.6, 1.8] }],
+    floorCracks: { count: 5, color: "rgba(70,100,120,0.35)" },
+    ambient: "snow", ambientRate: 12,
+    enemyBonus: 0, bearChance: 0.2, stoatChance: 0.18,
+    music: {
+      root: 220, scale: scaleFrom(220, [0, 3, 5, 7, 10, 12]),
+      pattern: [0, null, 2, null, 4, 3, null, 2, null, 0, null, 3, 2, null, null, null],
+      stepMs: 460, padWave: "sine", filterBase: 800, windFreq: 500, windGain: 0.02, timbre: "bell",
+    },
+  },
+  {
+    name: "Frozen Caverns", mazeSize: 19, loosenChance: 0.16,
+    sky: ["#04070a", "#141c22"], floorColor: "#39414a", floorShade: "#1e242a",
+    wallLow: [70, 92, 100], wallHigh: [118, 148, 158],
+    fogColor: [4, 7, 10], fogDensity: 10,
+    floorSpeckles: [{ color: "rgba(20,26,30,0.5)", count: 70, size: [1, 3] }, { color: "rgba(150,210,230,0.18)", count: 20, size: [0.5, 1.4] }],
+    floorCracks: { count: 8, color: "rgba(10,14,16,0.5)" },
+    ambient: "drip", ambientRate: 5,
+    enemyBonus: 2, bearChance: 0.3, stoatChance: 0.20,
+    music: {
+      root: 165, scale: scaleFrom(165, [0, 3, 5, 7, 10, 12]),
+      pattern: [null, 0, null, null, 2, null, 3, null, null, 0, null, 2, null, null, 3, null],
+      stepMs: 520, padWave: "sine", filterBase: 550, windFreq: 350, windGain: 0.012, timbre: "bell",
+    },
+  },
+  {
+    name: "Blizzard Wastes", mazeSize: 21, loosenChance: 0.3,
+    sky: ["#7e97ab", "#c3d7e2"], floorColor: "#e9f1f5", floorShade: "#c2d3dc",
+    wallLow: [205, 218, 226], wallHigh: [240, 248, 252],
+    fogColor: [205, 222, 232], fogDensity: 8,
+    floorSpeckles: [{ color: "rgba(255,255,255,0.6)", count: 60, size: [0.6, 1.6] }],
+    floorCracks: { count: 0, color: "transparent" },
+    ambient: "snowstorm", ambientRate: 55,
+    enemyBonus: 3, bearChance: 0.35, stoatChance: 0.22,
+    music: {
+      root: 247, scale: scaleFrom(247, [0, 3, 5, 7, 10, 12]),
+      pattern: [0, 2, null, 3, 0, null, 2, 4, null, 3, 2, null, 0, 2, null, 4],
+      stepMs: 380, padWave: "sine", filterBase: 1000, windFreq: 700, windGain: 0.04, timbre: "bell",
+    },
+  },
+  {
+    name: "Emperor's Keep", mazeSize: 19, loosenChance: 0.2,
+    sky: ["#170808", "#3a1414"], floorColor: "#2b1616", floorShade: "#150a0a",
+    wallLow: [125, 58, 48], wallHigh: [188, 92, 66],
+    fogColor: [18, 8, 8], fogDensity: 11,
+    floorSpeckles: [{ color: "rgba(255,140,60,0.28)", count: 40, size: [0.6, 1.6] }, { color: "rgba(0,0,0,0.4)", count: 60, size: [1, 2.4] }],
+    floorCracks: { count: 10, color: "rgba(0,0,0,0.5)" },
+    ambient: "embers", ambientRate: 16,
+    enemyBonus: 5, bearChance: 0.45, stoatChance: 0.24,
+    music: {
+      root: 130.5, scale: scaleFrom(130.5, [0, 3, 5, 7, 10, 12]),
+      pattern: [0, null, null, 3, null, 2, null, null, 5, null, 3, null, null, 2, null, 0],
+      stepMs: 420, padWave: "sine", filterBase: 600, windFreq: 260, windGain: 0.02, timbre: "bell",
+    },
+  },
+  {
+    name: "Frozen Harbor", mazeSize: 21, loosenChance: 0.24,
+    sky: ["#0a1c22", "#1d3540"], floorColor: "#5a6b6e", floorShade: "#33403f",
+    wallLow: [70, 110, 120], wallHigh: [120, 168, 175],
+    fogColor: [8, 18, 22], fogDensity: 12,
+    floorSpeckles: [{ color: "rgba(190,150,110,0.3)", count: 40, size: [0.8, 2.2] }, { color: "rgba(200,230,235,0.35)", count: 50, size: [0.6, 1.6] }],
+    floorCracks: { count: 9, color: "rgba(15,25,25,0.4)" },
+    ambient: "drip", ambientRate: 8,
+    enemyBonus: 6, bearChance: 0.42, stoatChance: 0.26,
+    music: {
+      root: 196, scale: scaleFrom(196, [0, 3, 5, 7, 10, 12]),
+      pattern: [0, null, 3, 2, null, 0, null, 5, 3, null, 2, null, 0, null, null, 2],
+      stepMs: 430, padWave: "sine", filterBase: 700, windFreq: 420, windGain: 0.025, timbre: "bell",
+    },
+  },
+  {
+    name: "Crystal Caverns", mazeSize: 21, loosenChance: 0.18,
+    sky: ["#050b18", "#0e1c33"], floorColor: "#2a3550", floorShade: "#151b2c",
+    wallLow: [60, 90, 160], wallHigh: [110, 150, 230],
+    fogColor: [6, 10, 20], fogDensity: 9,
+    floorSpeckles: [{ color: "rgba(120,170,255,0.4)", count: 60, size: [0.5, 1.6] }],
+    floorCracks: { count: 6, color: "rgba(90,140,230,0.3)" },
+    ambient: "drip", ambientRate: 6,
+    enemyBonus: 7, bearChance: 0.48, stoatChance: 0.28,
+    music: {
+      root: 174.6, scale: scaleFrom(174.6, [0, 3, 5, 7, 10, 12]),
+      pattern: [null, 2, null, 4, null, 5, null, 4, null, 2, null, 0, null, null, 2, null],
+      stepMs: 500, padWave: "sine", filterBase: 500, windFreq: 900, windGain: 0.01, timbre: "bell",
+    },
+  },
+  {
+    name: "Aurora Tundra", mazeSize: 23, loosenChance: 0.34,
+    sky: ["#0c2a24", "#123a52"], floorColor: "#dfeaf0", floorShade: "#b8ccd6",
+    wallLow: [150, 200, 190], wallHigh: [200, 240, 220],
+    fogColor: [150, 210, 195], fogDensity: 9,
+    floorSpeckles: [{ color: "rgba(180,255,220,0.35)", count: 50, size: [0.6, 1.8] }],
+    floorCracks: { count: 0, color: "transparent" },
+    ambient: "snowstorm", ambientRate: 60,
+    enemyBonus: 8, bearChance: 0.5, stoatChance: 0.28,
+    music: {
+      root: 261.63, scale: scaleFrom(261.63, [0, 3, 5, 7, 10, 12]),
+      pattern: [0, 2, 4, null, 3, 2, null, 0, 5, null, 4, 2, null, 3, null, 0],
+      stepMs: 360, padWave: "sine", filterBase: 1100, windFreq: 750, windGain: 0.045, timbre: "bell",
+    },
+  },
+  {
+    name: "Christmas Village", mazeSize: 21, loosenChance: 0.26,
+    sky: ["#0b1f2e", "#142a1f"], floorColor: "#6b4226", floorShade: "#3f2717",
+    wallLow: [40, 90, 60], wallHigh: [90, 160, 105],
+    fogColor: [10, 20, 15], fogDensity: 11,
+    floorSpeckles: [{ color: "rgba(255,214,120,0.35)", count: 30, size: [0.6, 1.6] }, { color: "rgba(255,255,255,0.4)", count: 50, size: [0.6, 1.6] }],
+    floorCracks: { count: 4, color: "rgba(40,25,15,0.35)" },
+    ambient: "snow", ambientRate: 16,
+    enemyBonus: 7, bearChance: 0.48, stoatChance: 0.26,
+    decor: [
+      { type: "tree", count: 12, scale: 1.9 },
+      { type: "gift", count: 10, scale: 0.5 },
+      { type: "candycane", count: 8, scale: 1.1 },
+    ],
+    music: {
+      root: 196, scale: scaleFrom(196, [0, 2, 4, 7, 9, 12]),
+      pattern: [0, null, 3, 2, 3, null, 4, null, 0, null, 3, 2, 3, 4, 3, null],
+      stepMs: 340, padWave: "triangle", filterBase: 1300, windFreq: 600, windGain: 0.012, timbre: "sleigh",
+    },
+  },
+  {
+    name: "Northern Lights Ruins", mazeSize: 23, loosenChance: 0.2,
+    sky: ["#0a0a20", "#241238"], floorColor: "#463a55", floorShade: "#241c30",
+    wallLow: [90, 70, 140], wallHigh: [150, 120, 210],
+    fogColor: [12, 8, 22], fogDensity: 10,
+    floorSpeckles: [{ color: "rgba(150,230,220,0.3)", count: 45, size: [0.6, 1.6] }],
+    floorCracks: { count: 10, color: "rgba(10,5,20,0.5)" },
+    ambient: "drip", ambientRate: 7,
+    enemyBonus: 9, bearChance: 0.55, stoatChance: 0.30,
+    music: {
+      root: 146.8, scale: scaleFrom(146.8, [0, 3, 5, 7, 10, 12]),
+      pattern: [0, null, null, 4, 3, null, 2, null, null, 5, null, 3, null, 2, null, null],
+      stepMs: 470, padWave: "sine", filterBase: 620, windFreq: 480, windGain: 0.018, timbre: "bell",
+    },
+  },
+  {
+    name: "The Frozen Throne", mazeSize: 23, loosenChance: 0.18,
+    sky: ["#120404", "#2c0808"], floorColor: "#1c0c0c", floorShade: "#0c0505",
+    wallLow: [140, 40, 40], wallHigh: [210, 80, 70],
+    fogColor: [15, 5, 5], fogDensity: 12,
+    floorSpeckles: [{ color: "rgba(255,120,60,0.3)", count: 45, size: [0.6, 1.8] }, { color: "rgba(0,0,0,0.4)", count: 55, size: [1, 2.4] }],
+    floorCracks: { count: 12, color: "rgba(0,0,0,0.55)" },
+    ambient: "embers", ambientRate: 22,
+    enemyBonus: 11, bearChance: 0.62, stoatChance: 0.32,
+    music: {
+      root: 116.5, scale: scaleFrom(116.5, [0, 1, 3, 6, 7, 10]),
+      pattern: [0, null, 3, null, 2, null, 5, null, 3, null, 0, null, 2, null, 3, null],
+      stepMs: 320, padWave: "sine", filterBase: 480, windFreq: 300, windGain: 0.02, timbre: "bell",
+    },
+  },
+];
+
+function hash2(x, y) {
+  const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+function buildLevelAssets() {
+  for (const level of LEVELS) {
+    const floorCanvas = document.createElement("canvas");
+    floorCanvas.width = 64; floorCanvas.height = 64;
+    const fc = floorCanvas.getContext("2d");
+    fc.fillStyle = level.floorColor;
+    fc.fillRect(0, 0, 64, 64);
+    for (const speck of level.floorSpeckles) {
+      for (let i = 0; i < speck.count; i++) {
+        const x = Math.random() * 64, y = Math.random() * 64;
+        const r = speck.size[0] + Math.random() * (speck.size[1] - speck.size[0]);
+        fc.fillStyle = speck.color;
+        fc.beginPath();
+        fc.ellipse(x, y, r, r * 0.7, Math.random() * Math.PI, 0, Math.PI * 2);
+        fc.fill();
+      }
+    }
+    fc.strokeStyle = level.floorCracks.color;
+    fc.lineWidth = 1;
+    for (let i = 0; i < level.floorCracks.count; i++) {
+      let x = Math.random() * 64, y = Math.random() * 64;
+      fc.beginPath();
+      fc.moveTo(x, y);
+      for (let s = 0; s < 3; s++) {
+        x += (Math.random() - 0.5) * 22; y += (Math.random() - 0.5) * 22;
+        fc.lineTo(x, y);
+      }
+      fc.stroke();
+    }
+    level.floorPattern = ctx.createPattern(floorCanvas, "repeat");
+
+    const ceilCanvas = document.createElement("canvas");
+    ceilCanvas.width = SCREEN_W; ceilCanvas.height = SCREEN_H / 2;
+    const cc = ceilCanvas.getContext("2d");
+    if (level.ambient === "snow" || level.ambient === "snowstorm") {
+      for (let i = 0; i < 90; i++) {
+        const x = Math.random() * SCREEN_W, y = Math.random() * (SCREEN_H / 2) * 0.85;
+        cc.fillStyle = `rgba(255,255,255,${0.15 + Math.random() * 0.55})`;
+        cc.beginPath(); cc.arc(x, y, Math.random() * 1.6 + 0.3, 0, Math.PI * 2); cc.fill();
+      }
+    } else if (level.ambient === "drip") {
+      for (let i = 0; i < 16; i++) {
+        const x = Math.random() * SCREEN_W;
+        const len = 16 + Math.random() * 38;
+        cc.fillStyle = "rgba(12,17,21,0.9)";
+        cc.beginPath();
+        cc.moveTo(x - 9, 0); cc.lineTo(x + 9, 0); cc.lineTo(x, len);
+        cc.closePath(); cc.fill();
+        cc.fillStyle = "rgba(140,210,230,0.3)";
+        cc.beginPath(); cc.arc(x, len - 3, 2, 0, Math.PI * 2); cc.fill();
+      }
+    } else if (level.ambient === "embers") {
+      for (let i = 0; i < 50; i++) {
+        const x = Math.random() * SCREEN_W, y = Math.random() * (SCREEN_H / 2);
+        cc.fillStyle = `rgba(255,${100 + Math.random() * 90 | 0},${30 + Math.random() * 40 | 0},${0.12 + Math.random() * 0.3})`;
+        cc.beginPath(); cc.arc(x, y, Math.random() * 2 + 0.6, 0, Math.PI * 2); cc.fill();
+      }
+    }
+    level.ceilingCanvas = ceilCanvas;
+  }
+}
+buildLevelAssets();
+
+// ---------------------------------------------------------------------------
+// Audio: sound effects and music are synthesized with the Web Audio API
+// (oscillators + generated noise) instead of loaded from files, so the game
+// stays a single self-contained HTML page. Everything is created lazily on
+// the first user gesture (ensureAudio, called from newGame) since browsers
+// block audio until then.
+// ---------------------------------------------------------------------------
+let audioCtx = null, musicGain = null, sfxGain = null;
+let flameNoiseGain = null, flameFilter = null;
+
+function noiseBuffer(duration) {
+  const n = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
+  const buf = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+  return buf;
+}
+
+function playTone({ freq, endFreq = null, type = "sine", duration = 0.15, gain = 0.5, delay = 0 }) {
+  const t0 = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (endFreq !== null) osc.frequency.exponentialRampToValueAtTime(Math.max(1, endFreq), t0 + duration);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.0005, t0 + duration);
+  osc.connect(g); g.connect(sfxGain);
+  osc.start(t0); osc.stop(t0 + duration + 0.02);
+}
+
+function playNoise({ duration = 0.2, gain = 0.4, filterFreq = 1200, filterType = "lowpass", delay = 0 }) {
+  const t0 = audioCtx.currentTime + delay;
+  const src = audioCtx.createBufferSource();
+  src.buffer = noiseBuffer(duration);
+  const filt = audioCtx.createBiquadFilter();
+  filt.type = filterType; filt.frequency.value = filterFreq;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.0005, t0 + duration);
+  src.connect(filt); filt.connect(g); g.connect(sfxGain);
+  src.start(t0); src.stop(t0 + duration + 0.02);
+}
+
+function sfxClick() { playTone({ freq: 900, endFreq: 700, type: "square", duration: 0.05, gain: 0.15 }); }
+function sfxBlaster() { playTone({ freq: 950, endFreq: 220, type: "square", duration: 0.09, gain: 0.22 }); }
+function sfxHarpoon() {
+  playTone({ freq: 190, endFreq: 60, type: "sawtooth", duration: 0.22, gain: 0.3 });
+  playNoise({ duration: 0.06, gain: 0.15, filterFreq: 2600, filterType: "highpass" });
+}
+function sfxHit(enemyType) {
+  const freq = enemyType === "walrus" ? 220 : enemyType === "polarbear" ? 320 : 520;
+  playTone({ freq, endFreq: 150, type: "triangle", duration: 0.08, gain: 0.22 });
+}
+function sfxKill(enemyType) {
+  if (enemyType === "walrus") {
+    playTone({ freq: 130, endFreq: 35, type: "sawtooth", duration: 0.65, gain: 0.34 });
+    playNoise({ duration: 0.4, gain: 0.22, filterFreq: 250, filterType: "lowpass", delay: 0.05 });
+  } else if (enemyType === "polarbear") {
+    playTone({ freq: 200, endFreq: 55, type: "sawtooth", duration: 0.45, gain: 0.3 });
+  } else {
+    playTone({ freq: 640, endFreq: 900, type: "sine", duration: 0.12, gain: 0.25 });
+    playTone({ freq: 480, endFreq: 120, type: "triangle", duration: 0.28, gain: 0.2, delay: 0.05 });
+  }
+}
+function sfxPlayerHurt() {
+  playNoise({ duration: 0.16, gain: 0.35, filterFreq: 700, filterType: "lowpass" });
+  playTone({ freq: 140, endFreq: 60, type: "sawtooth", duration: 0.2, gain: 0.25 });
+}
+// Layered bear roar: a low growl sweep, a sub-bass rumble an octave under
+// it, and two filtered noise bursts for breathy/throaty texture — reads as
+// a real bear roar instead of a single tone.
+function sfxRoar() {
+  playTone({ freq: 130, endFreq: 70, type: "sawtooth", duration: 0.7, gain: 0.34 });
+  playTone({ freq: 65, endFreq: 40, type: "sawtooth", duration: 0.75, gain: 0.28, delay: 0.02 });
+  playNoise({ duration: 0.6, gain: 0.32, filterFreq: 300, filterType: "lowpass", delay: 0.03 });
+  playNoise({ duration: 0.22, gain: 0.22, filterFreq: 1400, filterType: "bandpass", delay: 0.05 });
+}
+// Deep, nasal walrus bellow — lower and longer than the bear's roar, with a
+// slow pitch wobble so it reads as a heavy, blubbery honk rather than a growl.
+function sfxWalrusBellow() {
+  const t0 = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(95, t0);
+  osc.frequency.linearRampToValueAtTime(60, t0 + 0.9);
+  const wobble = audioCtx.createOscillator();
+  wobble.type = "sine"; wobble.frequency.value = 7;
+  const wobbleGain = audioCtx.createGain(); wobbleGain.gain.value = 6;
+  wobble.connect(wobbleGain); wobbleGain.connect(osc.frequency);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.32, t0 + 0.08);
+  g.gain.exponentialRampToValueAtTime(0.0005, t0 + 1.0);
+  osc.connect(g); g.connect(sfxGain);
+  wobble.start(t0); osc.start(t0);
+  wobble.stop(t0 + 1.05); osc.stop(t0 + 1.05);
+  playNoise({ duration: 0.5, gain: 0.22, filterFreq: 220, filterType: "lowpass", delay: 0.04 });
+}
+function sfxLevelClear() {
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => playTone({ freq: f, type: "triangle", duration: 0.5, gain: 0.22, delay: i * 0.11 }));
+}
+function sfxWin() {
+  [392.0, 523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => playTone({ freq: f, type: "triangle", duration: 0.6, gain: 0.22, delay: i * 0.13 }));
+}
+function sfxGameOver() {
+  [440, 392, 349.23, 293.66].forEach((f, i) => playTone({ freq: f, type: "sawtooth", duration: 0.5, gain: 0.22, delay: i * 0.18 }));
+}
+
+// Continuous flamethrower hiss: one looping noise source whose gain is
+// ramped up/down each frame instead of retriggered, so it doesn't crackle.
+function initFlameLoop() {
+  const src = audioCtx.createBufferSource();
+  src.buffer = noiseBuffer(2);
+  src.loop = true;
+  flameFilter = audioCtx.createBiquadFilter();
+  flameFilter.type = "bandpass";
+  flameFilter.frequency.value = 900;
+  flameFilter.Q.value = 0.6;
+  flameNoiseGain = audioCtx.createGain();
+  flameNoiseGain.gain.value = 0;
+  src.connect(flameFilter); flameFilter.connect(flameNoiseGain); flameNoiseGain.connect(sfxGain);
+  src.start();
+}
+function flameLoopSetActive(active) {
+  if (!flameNoiseGain) return;
+  const t = audioCtx.currentTime;
+  if (active) {
+    flameNoiseGain.gain.setTargetAtTime(0.28, t, 0.03);
+    flameFilter.frequency.setTargetAtTime(650 + Math.random() * 500, t, 0.05);
+  } else {
+    flameNoiseGain.gain.setTargetAtTime(0, t, 0.08);
+  }
+}
+
+// Wintry background music: a slow, sparse melody over an icy pad drone and a
+// thin layer of wind noise, all generated rather than loaded from a file.
+// Each sector supplies its own `music` config (root pitch, scale, rhythmic
+// pattern, tempo, pad/wind character, note timbre) so every sector has a
+// distinct track while sharing the same synthesis engine — see
+// startMusicForLevel, called from startLevel whenever the sector changes.
+function scaleFrom(root, semitoneSteps) {
+  return semitoneSteps.map(st => root * Math.pow(2, st / 12));
+}
+
+function playMelodyNote(freq, timbre) {
+  const t0 = audioCtx.currentTime;
+  if (timbre === "sleigh") {
+    // Bright, quick jingle-bell hit — fast metallic attack/decay plus a
+    // high-passed noise "shake" transient, instead of the slow bell swell.
+    const osc = audioCtx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(freq * 2, t0);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.13, t0 + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+    osc.connect(g); g.connect(musicGain);
+    osc.start(t0); osc.stop(t0 + 0.24);
+    const shimmer = audioCtx.createOscillator();
+    shimmer.type = "sine";
+    shimmer.frequency.setValueAtTime(freq * 4.02, t0);
+    const g2 = audioCtx.createGain();
+    g2.gain.setValueAtTime(0.0001, t0);
+    g2.gain.exponentialRampToValueAtTime(0.06, t0 + 0.004);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+    shimmer.connect(g2); g2.connect(musicGain);
+    shimmer.start(t0); shimmer.stop(t0 + 0.18);
+    playNoise({ duration: 0.05, gain: 0.05, filterFreq: 6000, filterType: "highpass" });
+    return;
+  }
+  // Default "bell" timbre: an icy sine plus a detuned shimmer overtone.
+  const osc = audioCtx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq, t0);
+  const shimmer = audioCtx.createOscillator();
+  shimmer.type = "sine";
+  shimmer.frequency.setValueAtTime(freq * 2.01, t0);
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.6);
+  const g2 = audioCtx.createGain();
+  g2.gain.setValueAtTime(0.0001, t0);
+  g2.gain.exponentialRampToValueAtTime(0.05, t0 + 0.02);
+  g2.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.0);
+  osc.connect(g); g.connect(musicGain);
+  shimmer.connect(g2); g2.connect(musicGain);
+  osc.start(t0); osc.stop(t0 + 1.7);
+  shimmer.start(t0); shimmer.stop(t0 + 1.1);
+}
+
+// Currently-playing pad/wind oscillators plus the melody's setInterval id,
+// torn down by stopMusic() before the next sector's track starts.
+let musicNodes = [];
+let musicIntervalId = null;
+
+function stopMusic() {
+  if (musicIntervalId !== null) { clearInterval(musicIntervalId); musicIntervalId = null; }
+  if (audioCtx) {
+    const t = audioCtx.currentTime;
+    for (const node of musicNodes) {
+      try { node.stop(t + 0.05); } catch (err) { /* already stopped */ }
+    }
+  }
+  musicNodes = [];
+}
+
+function startMusicForLevel(level) {
+  stopMusic();
+  const cfg = level.music;
+
+  // Pad drone: root + a fifth above, under a slowly breathing lowpass filter.
+  const padOsc1 = audioCtx.createOscillator();
+  const padOsc2 = audioCtx.createOscillator();
+  padOsc1.type = cfg.padWave; padOsc2.type = cfg.padWave;
+  padOsc1.frequency.value = cfg.root;
+  padOsc2.frequency.value = cfg.root * Math.pow(2, 7 / 12);
+  const padFilter = audioCtx.createBiquadFilter();
+  padFilter.type = "lowpass";
+  padFilter.frequency.value = cfg.filterBase;
+  const padGain = audioCtx.createGain();
+  padGain.gain.value = 0.05;
+  padOsc1.connect(padFilter); padOsc2.connect(padFilter);
+  padFilter.connect(padGain); padGain.connect(musicGain);
+  padOsc1.start(); padOsc2.start();
+
+  const lfo = audioCtx.createOscillator();
+  lfo.type = "sine"; lfo.frequency.value = 0.05;
+  const lfoGain = audioCtx.createGain();
+  lfoGain.gain.value = 250;
+  lfo.connect(lfoGain); lfoGain.connect(padFilter.frequency);
+  lfo.start();
+
+  // Thin wind layer.
+  const windSrc = audioCtx.createBufferSource();
+  windSrc.buffer = noiseBuffer(4);
+  windSrc.loop = true;
+  const windFilter = audioCtx.createBiquadFilter();
+  windFilter.type = "bandpass";
+  windFilter.frequency.value = cfg.windFreq;
+  windFilter.Q.value = 0.5;
+  const windGain = audioCtx.createGain();
+  windGain.gain.value = cfg.windGain;
+  windSrc.connect(windFilter); windFilter.connect(windGain); windGain.connect(musicGain);
+  windSrc.start();
+
+  musicNodes = [padOsc1, padOsc2, lfo, windSrc];
+
+  // Sparse melody, looped by re-triggering on an interval.
+  let step = 0;
+  const playStep = () => {
+    const degree = cfg.pattern[step % cfg.pattern.length];
+    step++;
+    if (degree !== null) playMelodyNote(cfg.scale[degree], cfg.timbre);
+  };
+  playStep();
+  musicIntervalId = setInterval(playStep, cfg.stepMs);
+}
+
+function ensureAudio() {
+  if (audioCtx) { if (audioCtx.state === "suspended") audioCtx.resume(); return; }
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  musicGain = audioCtx.createGain();
+  musicGain.gain.value = 0.5;
+  musicGain.connect(audioCtx.destination);
+  sfxGain = audioCtx.createGain();
+  sfxGain.gain.value = 0.6;
+  sfxGain.connect(audioCtx.destination);
+  initFlameLoop();
+}
+
+let player, enemies, mouseDX, mouseDY, scrollTurn, running, gameOver, won;
+let pitch = 0; // vertical look offset in screen pixels, shifts the horizon/sprites/walls
+let keys = {};
+let mouseHeld = false;
+let currentWeaponKey = "blaster";
+let fuel = 100;
+let lastShotTime = { blaster: 0, harpoon: 0 };
+let levelIndex = 0;
+let levelTransition = false;
+let levelTransitionTimer = 0;
+let ambientParticles = [];
+let ambientSpawnAccum = 0;
+let levelProps = [];
+
+function distance(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+
+function isOpen(x, y) {
+  const mx = Math.floor(x), my = Math.floor(y);
+  if (mx < 0 || my < 0 || mx >= MAP_SIZE || my >= MAP_SIZE) return false;
+  return MAP[mapIdx(mx, my)] === 0;
+}
+
+function newGame() {
+  ensureAudio();
+  player = { x: 0, y: 0, dirX: 1, dirY: 0, planeX: 0, planeY: FOV_PLANE, hp: 100 };
+
+  keys = {};
+  mouseDX = 0;
+  mouseDY = 0;
+  pitch = 0;
+  scrollTurn = 0;
+  mouseHeld = false;
+  currentWeaponKey = "blaster";
+  fuel = 100;
+  running = true;
+  gameOver = false;
+  won = false;
+  lastShotTime = { blaster: 0, harpoon: 0 };
+  recoilOffset = 0;
+  hurtFlash = 0;
+  flameShakeX = 0;
+  sparkParticles = [];
+  flameParticles = [];
+  tracers = [];
+  impactParticles = [];
+  ambientParticles = [];
+  ambientSpawnAccum = 0;
+  levelTransition = false;
+  levelTransitionTimer = 0;
+  joyReset();
+  weaponBtnEls.forEach(b => b.classList.toggle("selected", b.dataset.weapon === "blaster"));
+  startLevel(0);
+}
+
+// Rolls the base roster type for a regular (non-walrus) spawn: a chance of
+// a polar bear, then a chance of a stoat, otherwise a plain penguin.
+function pickBaseEnemyType(level) {
+  const r = Math.random();
+  if (r < level.bearChance) return "polarbear";
+  if (r < level.bearChance + (level.stoatChance || 0)) return "stoat";
+  return "penguin";
+}
+
+function makeEnemy(type, x, y) {
+  const stats = ENEMY_TYPES[type];
+  return {
+    type, x: x + 0.5, y: y + 0.5, hp: stats.hp, alive: true, hitFlash: 0, lastAttack: 0,
+    hunting: false, aware: false, wanderDirX: 0, wanderDirY: 0, wanderTimer: Math.random() * 2,
+    animPhase: Math.random() * 4, zigzagPhase: Math.random() * Math.PI * 2,
+  };
+}
+
+// Rebuilds the maze and enemy roster for a sector without touching HP,
+// weapon, or fuel — those carry over between sectors.
+function startLevel(idx) {
+  levelIndex = idx;
+  const level = LEVELS[idx];
+  buildLevel(level);
+  const startCell = openCells[0];
+  player.x = startCell[0] + 0.5;
+  player.y = startCell[1] + 0.5;
+  player.dirX = 1; player.dirY = 0; player.planeX = 0; player.planeY = FOV_PLANE;
+
+  // Place enemies on open cells reasonably far from the player. Bear odds
+  // and headcount both climb with each deeper sector.
+  const candidates = openCells.filter(([x, y]) => distance(x, y, player.x, player.y) > 4);
+  const shuffled = candidates.sort(() => Math.random() - 0.5);
+  const count = Math.min(18, Math.max(7, Math.floor(shuffled.length / 6)) + level.enemyBonus);
+  enemies = shuffled.slice(0, count).map(([x, y]) => makeEnemy(pickBaseEnemyType(level), x, y));
+
+  // Exactly one walrus per sector from Sector 2 onward: slow, very tanky,
+  // very hard-hitting — placed on a leftover cell so it doesn't just spawn
+  // stacked with the regular roster.
+  if (idx >= 1) {
+    const leftover = shuffled.slice(count);
+    const pool = leftover.length ? leftover : shuffled;
+    const [wx, wy] = pool[Math.floor(Math.random() * pool.length)];
+    enemies.push(makeEnemy("walrus", wx, wy));
+  }
+
+  // Static decorative billboards (Christmas trees, gifts, ...) for sectors
+  // that define a `decor` list — walkable through (no collision), just
+  // depth-sorted into the sprite pass like everything else. Placed away
+  // from the player and off the enemy roster's cells so nothing spawns
+  // visually stacked with a tree.
+  levelProps = [];
+  if (level.decor) {
+    const usedCells = new Set(enemies.map(e => mapIdx(Math.floor(e.x), Math.floor(e.y))));
+    const propCandidates = openCells.filter(([x, y]) => distance(x, y, player.x, player.y) > 1.5 && !usedCells.has(mapIdx(x, y)));
+    const shuffledProps = propCandidates.sort(() => Math.random() - 0.5);
+    let ci = 0;
+    for (const spec of level.decor) {
+      for (let i = 0; i < spec.count && ci < shuffledProps.length; i++, ci++) {
+        const [x, y] = shuffledProps[ci];
+        levelProps.push({ x: x + 0.5, y: y + 0.5, canvas: PROP_CANVASES[spec.type], scale: spec.scale });
+      }
+    }
+  }
+
+  if (audioCtx) startMusicForLevel(level);
+  updateHud();
+}
+
+function updateHud() {
+  hpEl.textContent = "HP: " + Math.max(0, Math.round(player.hp));
+  const alive = enemies.filter(e => e.alive).length;
+  const total = enemies.length;
+  scoreEl.textContent = "Enemies defeated: " + (total - alive) + " / " + total;
+  const w = WEAPONS[currentWeaponKey];
+  weaponEl.textContent = "Weapon: " + w.name + (currentWeaponKey === "flamethrower" ? " (fuel " + Math.round(fuel) + "%)" : "");
+  levelEl.textContent = "Sector " + (levelIndex + 1) + ": " + LEVELS[levelIndex].name;
+}
+
+// ---------------------------------------------------------------------------
+// Input
+// ---------------------------------------------------------------------------
+document.addEventListener("keydown", e => {
+  keys[e.code] = true;
+  if (e.code === "KeyR") newGame();
+  if (e.code === "Digit1") currentWeaponKey = "blaster";
+  if (e.code === "Digit2") currentWeaponKey = "harpoon";
+  if (e.code === "Digit3") currentWeaponKey = "flamethrower";
+  if (e.code === "Digit1" || e.code === "Digit2" || e.code === "Digit3") { if (player) updateHud(); if (audioCtx) sfxClick(); }
+});
+document.addEventListener("keyup", e => { keys[e.code] = false; });
+
+// Not gated on isTouch: that flag is a device *guess* (matchMedia/maxTouchPoints)
+// that also fires true on plenty of touchscreen-equipped laptops and desktops
+// where the player is actually using a real mouse, and gating mousedown on it
+// silently broke mouse-look/fire on those PCs. A genuine touch input can't
+// reach this handler anyway — canvas's touchstart below calls preventDefault,
+// which suppresses the browser's synthetic mousedown it would otherwise emit.
+function tryPointerLock() {
+  if (!canvas.requestPointerLock) return;
+  try {
+    const p = canvas.requestPointerLock();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  } catch (err) { /* Pointer Lock unsupported (e.g. touch-only browsers) — ignore */ }
+}
+canvas.addEventListener("mousedown", () => {
+  if (!document.pointerLockElement) { tryPointerLock(); return; }
+  mouseHeld = true;
+  if (WEAPONS[currentWeaponKey].mode === "semi") trySemiShot();
+});
+canvas.addEventListener("mouseup", () => { mouseHeld = false; });
+
+document.addEventListener("mousemove", e => {
+  if (document.pointerLockElement === canvas) { mouseDX += e.movementX; mouseDY += e.movementY; }
+});
+
+// Scroll right -> turn right, scroll left -> turn left.
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  scrollTurn += e.deltaX;
+}, { passive: false });
+
+startBtn.addEventListener("click", () => {
+  overlay.style.display = "none";
+  newGame();
+  tryPointerLock();
+});
+
+// ---------------------------------------------------------------------------
+// Touch controls: a virtual joystick for movement, drag-to-look anywhere on
+// the game view (reuses the same mouseDX/mouseDY the mouse path feeds, so
+// turning and vertical aim work identically), a fire button, weapon-select
+// icons, and a restart button (there's no keyboard to press R on).
+// ---------------------------------------------------------------------------
+let joyTouchId = null, joyCenterX = 0, joyCenterY = 0, joyForward = 0, joyStrafe = 0;
+const JOY_RADIUS = 55;
+
+function joyUpdateFromTouch(t) {
+  let dx = t.clientX - joyCenterX, dy = t.clientY - joyCenterY;
+  const dist = Math.hypot(dx, dy);
+  if (dist > JOY_RADIUS) { dx = (dx / dist) * JOY_RADIUS; dy = (dy / dist) * JOY_RADIUS; }
+  joyKnobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+  const nx = dx / JOY_RADIUS, ny = dy / JOY_RADIUS;
+  const deadzone = 0.18;
+  if (Math.hypot(nx, ny) < deadzone) { joyForward = 0; joyStrafe = 0; }
+  else { joyForward = -ny; joyStrafe = nx; }
+}
+function joyReset() {
+  joyTouchId = null; joyForward = 0; joyStrafe = 0;
+  joyKnobEl.style.transform = "translate(0px, 0px)";
+}
+joyBaseEl.addEventListener("touchstart", e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  joyTouchId = t.identifier;
+  const rect = joyBaseEl.getBoundingClientRect();
+  joyCenterX = rect.left + rect.width / 2;
+  joyCenterY = rect.top + rect.height / 2;
+  joyUpdateFromTouch(t);
+}, { passive: false });
+joyBaseEl.addEventListener("touchmove", e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) if (t.identifier === joyTouchId) joyUpdateFromTouch(t);
+}, { passive: false });
+joyBaseEl.addEventListener("touchend", e => {
+  for (const t of e.changedTouches) if (t.identifier === joyTouchId) joyReset();
+});
+joyBaseEl.addEventListener("touchcancel", e => {
+  for (const t of e.changedTouches) if (t.identifier === joyTouchId) joyReset();
+});
+
+// Drag-to-look: any touch that starts on the game canvas itself (i.e. not on
+// one of the control widgets, which are separate elements layered above it).
+let lookTouchId = null, lookLastX = 0, lookLastY = 0;
+canvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  if (lookTouchId === null) {
+    const t = e.changedTouches[0];
+    lookTouchId = t.identifier;
+    lookLastX = t.clientX; lookLastY = t.clientY;
+  }
+}, { passive: false });
+canvas.addEventListener("touchmove", e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier === lookTouchId) {
+      mouseDX += t.clientX - lookLastX;
+      mouseDY += t.clientY - lookLastY;
+      lookLastX = t.clientX; lookLastY = t.clientY;
+    }
+  }
+}, { passive: false });
+canvas.addEventListener("touchend", e => {
+  for (const t of e.changedTouches) if (t.identifier === lookTouchId) lookTouchId = null;
+});
+canvas.addEventListener("touchcancel", e => {
+  for (const t of e.changedTouches) if (t.identifier === lookTouchId) lookTouchId = null;
+});
+
+fireBtnEl.addEventListener("touchstart", e => {
+  e.preventDefault();
+  fireBtnEl.classList.add("pressed");
+  mouseHeld = true;
+  if (WEAPONS[currentWeaponKey].mode === "semi") trySemiShot();
+}, { passive: false });
+fireBtnEl.addEventListener("touchend", e => {
+  e.preventDefault();
+  fireBtnEl.classList.remove("pressed");
+  mouseHeld = false;
+});
+fireBtnEl.addEventListener("touchcancel", () => {
+  fireBtnEl.classList.remove("pressed");
+  mouseHeld = false;
+});
+
+for (const btn of weaponBtnEls) {
+  btn.addEventListener("touchstart", e => {
+    e.preventDefault();
+    currentWeaponKey = btn.dataset.weapon;
+    weaponBtnEls.forEach(b => b.classList.toggle("selected", b === btn));
+    if (player) updateHud();
+    if (audioCtx) sfxClick();
+  }, { passive: false });
+}
+
+restartBtnMobileEl.addEventListener("touchstart", e => {
+  e.preventDefault();
+  overlay.style.display = "none";
+  newGame();
+});
+
+// ---------------------------------------------------------------------------
+// Sprite screen projection + pixel-accurate hit testing.
+//
+// The renderer already turns each enemy's world position into a screen-space
+// billboard rectangle every frame (see renderSprites). Hit detection reuses
+// that exact same math, then samples the sprite's alpha mask at the
+// crosshair's position inside that rectangle — so a shot only lands where
+// there is actually an opaque pixel (a foot, a wing, a beak, ...) under the
+// reticle, and misses the same gaps the player can see through.
+// ---------------------------------------------------------------------------
+function projectSprite(e, stats, invDet) {
+  const spriteX = e.x - player.x, spriteY = e.y - player.y;
+  const transformX = invDet * (player.dirY * spriteX - player.dirX * spriteY);
+  const transformY = invDet * (-player.planeY * spriteX + player.planeX * spriteY);
+  if (transformY <= 0.15) return null;
+
+  const spriteScreenX = Math.floor((SCREEN_W / 2) * (1 + transformX / transformY));
+  const spriteHeight = Math.abs(Math.floor(SCREEN_H / transformY)) * 0.9 * stats.scale;
+  const spriteWidth = spriteHeight;
+  const horizon = SCREEN_H / 2 + pitch;
+  const drawStartY = Math.max(0, -spriteHeight / 2 + horizon);
+  const drawEndY = Math.min(SCREEN_H, spriteHeight / 2 + horizon);
+  const drawStartX = Math.floor(-spriteWidth / 2 + spriteScreenX);
+  const drawEndX = Math.floor(spriteWidth / 2 + spriteScreenX);
+
+  return { transformY, spriteScreenX, spriteWidth, spriteHeight, drawStartX, drawEndX, drawStartY, drawEndY };
+}
+
+function pixelHitTestAtScreen(stats, proj, screenX, screenY) {
+  if (screenX < proj.drawStartX || screenX >= proj.drawStartX + proj.spriteWidth) return false;
+  if (screenY < proj.drawStartY || screenY >= proj.drawStartY + proj.spriteHeight) return false;
+  const localX = (screenX - proj.drawStartX) / proj.spriteWidth * SPRITE_SIZE;
+  const localY = (screenY - proj.drawStartY) / proj.spriteHeight * SPRITE_SIZE;
+  const sx = Math.min(SPRITE_SIZE - 1, Math.max(0, Math.floor(localX)));
+  const sy = Math.min(SPRITE_SIZE - 1, Math.max(0, Math.floor(localY)));
+  return stats.alphaMask[sy * SPRITE_SIZE + sx] === 1;
+}
+
+// Finds the closest enemy whose actual sprite pixel sits under the crosshair
+// and is not behind a wall (checked against the same zBuffer the renderer
+// used this frame), for the precise semi-auto weapons.
+function findPixelTarget(range) {
+  const cx = SCREEN_W / 2, cy = SCREEN_H / 2;
+  const col = Math.min(SCREEN_W - 1, Math.max(0, Math.round(cx)));
+  const invDet = 1.0 / (player.planeX * player.dirY - player.dirX * player.planeY);
+  let best = null, bestDepth = Infinity;
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    if (distance(player.x, player.y, e.x, e.y) > range) continue;
+    const stats = ENEMY_TYPES[e.type];
+    const proj = projectSprite(e, stats, invDet);
+    if (!proj) continue;
+    if (proj.transformY >= zBuffer[col]) continue; // occluded by a wall
+    if (!pixelHitTestAtScreen(stats, proj, cx, cy)) continue;
+    if (proj.transformY < bestDepth) { best = e; bestDepth = proj.transformY; }
+  }
+  return best;
+}
+
+// The flamethrower sprays a cone rather than a pinpoint shot, so instead of a
+// single crosshair pixel it checks whether the enemy's actual on-screen
+// silhouette footprint overlaps the visible flame stream band.
+function flameCatchesEnemy(e, stats, invDet, halfWidth, range) {
+  if (distance(player.x, player.y, e.x, e.y) > range) return false;
+  const proj = projectSprite(e, stats, invDet);
+  if (!proj) return false;
+  const col = Math.min(SCREEN_W - 1, Math.max(0, Math.round(proj.spriteScreenX)));
+  if (proj.transformY >= zBuffer[col]) return false; // occluded by a wall
+  const left = SCREEN_W / 2 - halfWidth, right = SCREEN_W / 2 + halfWidth;
+  if (proj.drawEndX < left || proj.drawStartX > right) return false;
+  return proj;
+}
+
+function killIfDead(e) {
+  if (e.hp <= 0 && e.alive) {
+    e.alive = false;
+    if (enemies.every(x => !x.alive)) {
+      if (levelIndex < LEVELS.length - 1) {
+        levelTransition = true;
+        levelTransitionTimer = 2.4;
+        sfxLevelClear();
+      } else {
+        won = true;
+        sfxWin();
+      }
+    }
+  }
+}
+
+function trySemiShot() {
+  if (gameOver || won || levelTransition) return;
+  const w = WEAPONS[currentWeaponKey];
+  const now = performance.now();
+  if (now - lastShotTime[currentWeaponKey] < w.cooldown) return;
+  lastShotTime[currentWeaponKey] = now;
+  muzzleFlash = 6;
+  recoilOffset = currentWeaponKey === "harpoon" ? 18 : 11;
+  spawnMuzzleSparks(currentWeaponKey);
+  if (currentWeaponKey === "harpoon") sfxHarpoon(); else sfxBlaster();
+
+  const target = findPixelTarget(w.range);
+  spawnTracer(currentWeaponKey);
+  if (target) {
+    target.hp -= w.damage;
+    target.hitFlash = 8;
+    spawnImpactParticles(SCREEN_W / 2, SCREEN_H / 2, target.type);
+    const wasAlive = target.alive;
+    killIfDead(target);
+    if (wasAlive && !target.alive) sfxKill(target.type); else sfxHit(target.type);
+    updateHud();
+  }
+}
+
+function tickFlamethrower(dt) {
+  const w = WEAPONS.flamethrower;
+  if (fuel <= 0) { flameLoopSetActive(false); return; }
+  fuel = Math.max(0, fuel - w.fuelDrain * dt);
+  muzzleFlash = 4;
+  recoilOffset = Math.min(7, recoilOffset + 30 * dt);
+  flameShakeX = (Math.random() - 0.5) * 3;
+  flameLoopSetActive(true);
+  spawnFlameParticles(dt);
+  const invDet = 1.0 / (player.planeX * player.dirY - player.dirX * player.planeY);
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    const stats = ENEMY_TYPES[e.type];
+    const proj = flameCatchesEnemy(e, stats, invDet, w.flameHalfWidth, w.range);
+    if (!proj) continue;
+    e.hp -= w.dps * dt;
+    e.hitFlash = 6;
+    if (Math.random() < dt * 14) {
+      const ix = Math.min(SCREEN_W - 1, Math.max(0, proj.spriteScreenX));
+      const iy = proj.drawStartY + proj.spriteHeight * (0.35 + Math.random() * 0.3);
+      spawnImpactParticles(ix, iy, e.type);
+    }
+    const wasAlive = e.alive;
+    killIfDead(e);
+    if (wasAlive && !e.alive) sfxKill(e.type);
+  }
+  updateHud();
+}
+
+function hasLineOfSight(x0, y0, x1, y1) {
+  const steps = Math.ceil(distance(x0, y0, x1, y1) * 4);
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    if (!isOpen(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t)) return false;
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Enemy pathing: a BFS "flow field" out from the player's cell, recomputed
+// once per frame and shared by every hunting enemy. Each reachable open cell
+// gets `nextIdx`, the neighboring cell one step closer to the player — so a
+// chasing enemy always steps toward an actually-connected adjacent cell
+// instead of lunging straight at the player's (x, y) and wedging itself into
+// a corner whenever the direct line clips a wall. `hasLineOfSight` above is
+// still used only to decide whether an enemy has *spotted* the player
+// (`aware`), not to steer movement, since a raycast sampled at discrete
+// points can bleed through the exact corner of a wall cell in a way a body
+// actually walking the grid cannot.
+// ---------------------------------------------------------------------------
+function computeFlowField(originX, originY) {
+  const size = MAP_SIZE;
+  const total = size * size;
+  const dist = new Int32Array(total).fill(-1);
+  const nextIdx = new Int32Array(total).fill(-1);
+  const originIdx = mapIdx(originX, originY);
+  if (MAP[originIdx] === 1) return { dist, nextIdx };
+  dist[originIdx] = 0;
+  const queue = [originIdx];
+  let qi = 0;
+  while (qi < queue.length) {
+    const cur = queue[qi++];
+    const cx = cur % size, cy = (cur / size) | 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + dx, ny = cy + dy;
+      if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
+      const nIdx = ny * size + nx;
+      if (MAP[nIdx] === 1 || dist[nIdx] !== -1) continue;
+      dist[nIdx] = dist[cur] + 1;
+      nextIdx[nIdx] = cur;
+      queue.push(nIdx);
+    }
+  }
+  return { dist, nextIdx };
+}
+
+let frameFlowField = null;
+function getFlowField() {
+  if (!frameFlowField) frameFlowField = computeFlowField(Math.floor(player.x), Math.floor(player.y));
+  return frameFlowField;
+}
+
+// Waypoint (world-space) a hunting enemy at (ex, ey) should walk toward this
+// frame: straight at the player once in the same or an adjacent cell (for a
+// precise final approach), otherwise the center of the flow field's next
+// cell. Falls back to the player's own position if the maze loosening ever
+// produced an unreachable pocket (shouldn't happen — the maze is carved as
+// one connected tree before loosening only adds shortcuts).
+function chaseWaypoint(ex, ey) {
+  const flow = getFlowField();
+  const ecx = Math.floor(ex), ecy = Math.floor(ey);
+  const eIdx = mapIdx(ecx, ecy);
+  const pcx = Math.floor(player.x), pcy = Math.floor(player.y);
+  if ((ecx === pcx && ecy === pcy) || flow.dist[eIdx] === 1 || flow.dist[eIdx] === 0) {
+    return [player.x, player.y];
+  }
+  if (flow.dist[eIdx] > 0) {
+    const nIdx = flow.nextIdx[eIdx];
+    const nx = nIdx % MAP_SIZE, ny = (nIdx / MAP_SIZE) | 0;
+    return [nx + 0.5, ny + 0.5];
+  }
+  return [player.x, player.y];
+}
+
+let muzzleFlash = 0;
+const HURT_FLASH_PEAK = 20;
+let hurtFlash = 0;
+let recoilOffset = 0;
+let flameShakeX = 0;
+let sparkParticles = [];
+let flameParticles = [];
+let flameSpawnAccum = 0;
+
+// ---------------------------------------------------------------------------
+// Muzzle / flame particle effects
+// ---------------------------------------------------------------------------
+function spawnMuzzleSparks(weaponKey) {
+  const isHarpoon = weaponKey === "harpoon";
+  const count = isHarpoon ? 6 : 10;
+  for (let i = 0; i < count; i++) {
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * (isHarpoon ? 1.0 : 1.9);
+    const speed = isHarpoon ? 100 + Math.random() * 70 : 150 + Math.random() * 130;
+    sparkParticles.push({
+      x: SCREEN_W / 2 + (Math.random() - 0.5) * 8,
+      y: muzzleScreenY(),
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 0.16 + Math.random() * 0.1,
+      maxLife: 0.26,
+      size: isHarpoon ? 3 + Math.random() * 2.5 : 1.5 + Math.random() * 2.2,
+      color: isHarpoon ? "#ffd28a" : "#bff3ff",
+    });
+  }
+}
+
+function updateSparkParticles(dt) {
+  for (let i = sparkParticles.length - 1; i >= 0; i--) {
+    const p = sparkParticles[i];
+    p.life -= dt;
+    if (p.life <= 0) { sparkParticles.splice(i, 1); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 260 * dt;
+  }
+}
+
+function drawSparkParticles() {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const p of sparkParticles) {
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life / p.maxLife));
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.size, p.size, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function spawnFlameParticles(dt) {
+  flameSpawnAccum += dt * 70;
+  while (flameSpawnAccum >= 1) {
+    flameSpawnAccum -= 1;
+    const spread = (Math.random() - 0.5) * 30;
+    flameParticles.push({
+      x: SCREEN_W / 2 + spread * 0.35,
+      y: muzzleScreenY(),
+      vx: spread * 2.2 + (Math.random() - 0.5) * 24,
+      vy: -160 - Math.random() * 100,
+      life: 0,
+      maxLife: 0.32 + Math.random() * 0.28,
+      size: 9 + Math.random() * 15,
+    });
+  }
+}
+
+function updateFlameParticles(dt) {
+  for (let i = flameParticles.length - 1; i >= 0; i--) {
+    const p = flameParticles[i];
+    p.life += dt;
+    if (p.life >= p.maxLife) { flameParticles.splice(i, 1); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 70 * dt;
+    p.vx *= 1 - dt * 0.6;
+  }
+}
+
+function flameColor(t) {
+  if (t < 0.3) return `rgba(255, 235, 150, ${1 - t * 0.5})`;
+  if (t < 0.65) return `rgba(255, 140, 40, ${1 - t * 0.7})`;
+  return `rgba(110, 80, 60, ${(1 - t) * 0.6})`;
+}
+
+function drawFlameParticles() {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const p of flameParticles) {
+    const t = p.life / p.maxLife;
+    ctx.fillStyle = flameColor(t);
+    const size = p.size * (1 - t * 0.35);
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, size, size * 0.85, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// Shot tracers: a quick glowing streak from the gun's nozzle up to the
+// crosshair, so the semi-auto weapons read as firing a visible projectile
+// instead of an invisible instant hit.
+// ---------------------------------------------------------------------------
+let tracers = [];
+function spawnTracer(weaponKey) {
+  const nozzleY = muzzleScreenY();
+  tracers.push({
+    x: SCREEN_W / 2 + (Math.random() - 0.5) * 3,
+    y0: nozzleY,
+    y1: SCREEN_H / 2,
+    life: 0.1,
+    maxLife: 0.1,
+    color: weaponKey === "harpoon" ? "#e8c98a" : "#bff3ff",
+    width: weaponKey === "harpoon" ? 5 : 3,
+  });
+}
+
+function updateTracers(dt) {
+  for (let i = tracers.length - 1; i >= 0; i--) {
+    tracers[i].life -= dt;
+    if (tracers[i].life <= 0) tracers.splice(i, 1);
+  }
+}
+
+function drawTracers() {
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.lineCap = "round";
+  for (const t of tracers) {
+    const a = Math.max(0, t.life / t.maxLife);
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = t.color;
+    ctx.lineWidth = t.width * a + 1;
+    ctx.beginPath();
+    ctx.moveTo(t.x, t.y0);
+    ctx.lineTo(t.x, t.y1);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// Impact particles: a small burst of feathers/fur/sparks spawned at the
+// exact screen point where a shot registered, so the reaction visibly
+// happens at the hit location (a foot shot kicks up its burst down low).
+// ---------------------------------------------------------------------------
+let impactParticles = [];
+function spawnImpactParticles(x, y, enemyType) {
+  const isBear = enemyType === "polarbear";
+  const isWalrus = enemyType === "walrus";
+  const count = 9 + Math.floor(Math.random() * 4);
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 60 + Math.random() * 170;
+    impactParticles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 50,
+      life: 0.22 + Math.random() * 0.22,
+      maxLife: 0.44,
+      size: isBear || isWalrus ? 2 + Math.random() * 2.6 : 1.4 + Math.random() * 2,
+      color: isWalrus
+        ? (Math.random() < 0.6 ? "#8d7359" : "#e8dcb8")
+        : isBear
+        ? (Math.random() < 0.5 ? "#f4f4f4" : "#d9dde0")
+        : (Math.random() < 0.6 ? "#1a1f22" : "#ff9d2f"),
+    });
+  }
+}
+
+function updateImpactParticles(dt) {
+  for (let i = impactParticles.length - 1; i >= 0; i--) {
+    const p = impactParticles[i];
+    p.life -= dt;
+    if (p.life <= 0) { impactParticles.splice(i, 1); continue; }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 260 * dt;
+    p.vx *= 1 - dt * 0.9;
+  }
+}
+
+function drawImpactParticles() {
+  ctx.save();
+  for (const p of impactParticles) {
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.size, p.size, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// Ambient environment particles (per-sector decoration: falling snow,
+// cavern drips, blizzard whiteout, rising embers).
+// ---------------------------------------------------------------------------
+function makeAmbientParticle(level) {
+  if (level.ambient === "snow" || level.ambient === "snowstorm") {
+    const heavy = level.ambient === "snowstorm";
+    return {
+      x: Math.random() * SCREEN_W, y: -4,
+      vx: (Math.random() - 0.5) * (heavy ? 150 : 26),
+      vy: (heavy ? 130 : 45) + Math.random() * (heavy ? 90 : 35),
+      life: 6, size: 1 + Math.random() * (heavy ? 2.6 : 1.8),
+      color: `rgba(255,255,255,${heavy ? 0.85 : 0.7})`,
+    };
+  }
+  if (level.ambient === "drip") {
+    return {
+      x: Math.random() * SCREEN_W, y: SCREEN_H * 0.15 + Math.random() * SCREEN_H * 0.15,
+      vx: 0, vy: 70 + Math.random() * 50,
+      life: 2.2, size: 1.1 + Math.random() * 0.8,
+      color: "rgba(170,225,240,0.7)",
+    };
+  }
+  // embers
+  return {
+    x: Math.random() * SCREEN_W, y: SCREEN_H * 0.65 + Math.random() * SCREEN_H * 0.35,
+    vx: (Math.random() - 0.5) * 24, vy: -35 - Math.random() * 45,
+    life: 2.4, size: 1 + Math.random() * 2,
+    color: `rgba(255,${120 + Math.random() * 80 | 0},${40 + Math.random() * 40 | 0},0.85)`,
+  };
+}
+
+function updateAmbient(dt) {
+  const level = LEVELS[levelIndex];
+  ambientSpawnAccum += dt * level.ambientRate;
+  while (ambientSpawnAccum >= 1) {
+    ambientSpawnAccum -= 1;
+    ambientParticles.push(makeAmbientParticle(level));
+  }
+  for (let i = ambientParticles.length - 1; i >= 0; i--) {
+    const p = ambientParticles[i];
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    if (p.life <= 0 || p.y > SCREEN_H || p.y < -10) ambientParticles.splice(i, 1);
+  }
+}
+
+function drawAmbient() {
+  ctx.save();
+  for (const p of ambientParticles) {
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 2));
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.size, p.size, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// Weapon silhouette drawing
+// ---------------------------------------------------------------------------
+// Local-space y of each gun's actual muzzle opening (see drawXGun below —
+// the same coordinate its barrel tip/ellipse is drawn at), so muzzle
+// flashes, sparks, tracers and flame all originate from the barrel itself
+// instead of an independent guessed offset. The harpoon's barbed point
+// sticks out further than the other two barrels, hence the taller offset.
+const MUZZLE_TIP_Y = { blaster: -140, harpoon: -182, flamethrower: -142 };
+function muzzleScreenY() {
+  return SCREEN_H - recoilOffset + pitch + MUZZLE_TIP_Y[currentWeaponKey];
+}
+
+function drawWeapon(key, recoil, shakeX) {
+  const w = WEAPONS[key];
+  ctx.save();
+  ctx.translate(SCREEN_W / 2 + shakeX, SCREEN_H - recoil + pitch);
+  if (key === "blaster") drawBlasterGun(w);
+  else if (key === "harpoon") drawHarpoonGun(w);
+  else drawFlamethrowerGun(w);
+  ctx.restore();
+}
+
+function drawBlasterGun(w) {
+  // grip
+  const gripGrad = ctx.createLinearGradient(-14, -34, 6, -34);
+  gripGrad.addColorStop(0, "#0d1318");
+  gripGrad.addColorStop(1, "#26333d");
+  ctx.fillStyle = gripGrad;
+  ctx.fillRect(-14, -34, 20, 40);
+  ctx.strokeStyle = "rgba(0,0,0,0.4)";
+  ctx.lineWidth = 1;
+  for (let gy = -30; gy < -2; gy += 6) { ctx.beginPath(); ctx.moveTo(-13, gy); ctx.lineTo(5, gy); ctx.stroke(); }
+
+  // body shell, lit from upper-left
+  const grad = ctx.createLinearGradient(-34, -95, 34, -20);
+  grad.addColorStop(0, "#5c96b8");
+  grad.addColorStop(0.45, "#3a6f8f");
+  grad.addColorStop(1, w.bodyColor);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(-34, -20);
+  ctx.lineTo(-30, -80);
+  ctx.lineTo(30, -95);
+  ctx.lineTo(34, -20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(10,20,28,0.55)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // panel seam + rivets
+  ctx.strokeStyle = "rgba(15,30,40,0.5)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(-24, -76); ctx.lineTo(-20, -28); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(24, -88); ctx.lineTo(20, -28); ctx.stroke();
+  ctx.fillStyle = "rgba(200,235,245,0.55)";
+  for (const [rx, ry] of [[-26, -70], [-22, -40], [24, -80], [20, -40]]) {
+    ctx.beginPath(); ctx.ellipse(rx, ry, 1.6, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // barrel with metallic gradient + fins
+  const barrelGrad = ctx.createLinearGradient(-11, 0, 11, 0);
+  barrelGrad.addColorStop(0, "#1c3a4a");
+  barrelGrad.addColorStop(0.5, w.barrelColor);
+  barrelGrad.addColorStop(1, "#1c3a4a");
+  ctx.fillStyle = barrelGrad;
+  ctx.fillRect(-11, -140, 22, 55);
+  ctx.fillStyle = "#1a2530";
+  ctx.fillRect(-13, -122, 26, 5);
+  ctx.fillRect(-13, -108, 26, 5);
+  ctx.beginPath();
+  ctx.ellipse(0, -140, 11, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = barrelGrad;
+  ctx.beginPath();
+  ctx.ellipse(0, -140, 8.5, 4.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // glowing energy core, visible through the barrel vents
+  const pulse = 0.55 + 0.45 * Math.sin(performance.now() / 180);
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.fillStyle = `rgba(140,235,255,${pulse})`;
+  ctx.beginPath();
+  ctx.ellipse(0, -140, 6, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = `rgba(180,250,255,${pulse * 0.5})`;
+  ctx.beginPath();
+  ctx.ellipse(0, -140, 10, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = "rgba(20,40,50,0.7)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(0, -140, 11, 6, 0, 0, Math.PI * 2); ctx.stroke();
+
+  // top sight rail highlight
+  ctx.fillStyle = "rgba(220,245,255,0.35)";
+  ctx.fillRect(-2, -142, 4, 2);
+}
+
+function drawHarpoonGun(w) {
+  ctx.fillStyle = "#1c130a";
+  ctx.fillRect(-14, -30, 20, 36);
+  ctx.strokeStyle = "rgba(0,0,0,0.4)";
+  for (let gy = -26; gy < -2; gy += 6) { ctx.beginPath(); ctx.moveTo(-13, gy); ctx.lineTo(5, gy); ctx.stroke(); }
+
+  // riveted iron body block, lit from top
+  const bodyGrad = ctx.createLinearGradient(-38, -85, -38, -25);
+  bodyGrad.addColorStop(0, "#6a4a2c");
+  bodyGrad.addColorStop(1, w.bodyColor);
+  ctx.fillStyle = bodyGrad;
+  ctx.fillRect(-38, -85, 76, 60);
+  ctx.strokeStyle = "rgba(20,12,5,0.6)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-38, -85, 76, 60);
+
+  ctx.fillStyle = "#12100c";
+  for (const rx of [-30, -10, 10, 30]) {
+    ctx.beginPath(); ctx.arc(rx, -55, 2.6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(220,200,170,0.4)";
+    ctx.beginPath(); ctx.arc(rx - 0.6, -55.6, 0.8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#12100c";
+  }
+  // pressure gauge
+  ctx.fillStyle = "#e8dfc8";
+  ctx.beginPath(); ctx.arc(20, -70, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#3a2814"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(20, -70, 7, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(20, -70); ctx.lineTo(24, -74); ctx.stroke();
+
+  // barrel, steel gradient
+  const barrelGrad = ctx.createLinearGradient(-13, 0, 13, 0);
+  barrelGrad.addColorStop(0, "#5a3a1e");
+  barrelGrad.addColorStop(0.5, w.barrelColor);
+  barrelGrad.addColorStop(1, "#4a2f18");
+  ctx.fillStyle = barrelGrad;
+  ctx.fillRect(-13, -150, 26, 68);
+  ctx.strokeStyle = "rgba(20,12,5,0.5)";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(-13, -150, 26, 68);
+
+  // barbed harpoon tip loaded in the barrel
+  ctx.fillStyle = "#c9c9c9";
+  ctx.beginPath();
+  ctx.moveTo(0, -182);
+  ctx.lineTo(-8, -150);
+  ctx.lineTo(8, -150);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#5a5a5a"; ctx.lineWidth = 1; ctx.stroke();
+  // barbs
+  ctx.fillStyle = "#b0b0b0";
+  ctx.beginPath(); ctx.moveTo(-8, -150); ctx.lineTo(-15, -142); ctx.lineTo(-6, -144); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(8, -150); ctx.lineTo(15, -142); ctx.lineTo(6, -144); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#8a8a8a";
+  ctx.fillRect(-11, -152, 22, 6);
+
+  // coiled rope on the side
+  ctx.strokeStyle = "#7a5a30";
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.ellipse(-44, -40 - i * 9, 10, 6, 0.3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(255,230,190,0.25)";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(-46, -49, 9, 5, 0.3, 0, Math.PI); ctx.stroke();
+}
+
+function drawFlamethrowerGun(w) {
+  // dual fuel tanks with cylindrical shading
+  for (const side of [-1, 1]) {
+    const tankGrad = ctx.createLinearGradient(side * 60, 0, side * 32, 0);
+    tankGrad.addColorStop(0, "#222222");
+    tankGrad.addColorStop(0.5, "#4a4a4a");
+    tankGrad.addColorStop(1, "#2a2a2a");
+    ctx.fillStyle = tankGrad;
+    ctx.beginPath(); ctx.ellipse(side * 46, -70, 16, 46, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(side * 46, -70, 16, 46, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(side * 46, -108); ctx.lineTo(side * 46, -32); ctx.stroke();
+    // hazard stripe
+    ctx.fillStyle = "#c9432b";
+    ctx.fillRect(side * 58 - 12, -95, 24, 8);
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(side * 58 - 12, -95, 24, 2);
+    ctx.fillRect(side * 58 - 12, -89, 24, 2);
+  }
+
+  ctx.fillStyle = "#1a110d";
+  ctx.fillRect(-14, -30, 20, 36);
+  ctx.strokeStyle = "rgba(0,0,0,0.4)";
+  for (let gy = -26; gy < -2; gy += 6) { ctx.beginPath(); ctx.moveTo(-13, gy); ctx.lineTo(5, gy); ctx.stroke(); }
+
+  const bodyGrad = ctx.createLinearGradient(-30, -90, 30, -28);
+  bodyGrad.addColorStop(0, "#8a2c1e");
+  bodyGrad.addColorStop(1, w.bodyColor);
+  ctx.fillStyle = bodyGrad;
+  ctx.fillRect(-30, -90, 60, 62);
+  ctx.strokeStyle = "rgba(20,5,0,0.5)"; ctx.lineWidth = 2;
+  ctx.strokeRect(-30, -90, 60, 62);
+
+  // rivets + small pilot-light window
+  ctx.fillStyle = "#150805";
+  for (const [rx, ry] of [[-22, -78], [22, -78], [-22, -40], [22, -40]]) {
+    ctx.beginPath(); ctx.arc(rx, ry, 2, 0, Math.PI * 2); ctx.fill();
+  }
+  const flick = 0.5 + 0.5 * Math.sin(performance.now() / 60);
+  ctx.fillStyle = `rgba(255,${140 + flick * 60 | 0},60,0.9)`;
+  ctx.beginPath(); ctx.ellipse(0, -58, 6, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#1a1a1a"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(0, -58, 6, 8, 0, 0, Math.PI * 2); ctx.stroke();
+
+  // fuel hose
+  ctx.strokeStyle = "#1a1a1a";
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(-30, -80);
+  ctx.quadraticCurveTo(-46, -100, -20, -120);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.12)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-30, -80);
+  ctx.quadraticCurveTo(-46, -100, -20, -120);
+  ctx.stroke();
+
+  // nozzle barrel
+  const barrelGrad = ctx.createLinearGradient(-15, 0, 15, 0);
+  barrelGrad.addColorStop(0, "#7a2419");
+  barrelGrad.addColorStop(0.5, w.barrelColor);
+  barrelGrad.addColorStop(1, "#5c1f16");
+  ctx.fillStyle = barrelGrad;
+  ctx.fillRect(-15, -140, 30, 55);
+  ctx.strokeStyle = "rgba(20,5,0,0.5)"; ctx.lineWidth = 1.5;
+  ctx.strokeRect(-15, -140, 30, 55);
+  ctx.fillStyle = "#2a0d08";
+  ctx.fillRect(-15, -110, 30, 4);
+  ctx.beginPath(); ctx.ellipse(0, -140, 15, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#1a1a1a";
+  ctx.beginPath(); ctx.ellipse(0, -140, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.fillStyle = `rgba(255,180,80,${0.5 + flick * 0.5})`;
+  ctx.beginPath(); ctx.ellipse(0, -145, 4 + flick * 2, 4 + flick * 2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = `rgba(255,220,150,${0.3 + flick * 0.3})`;
+  ctx.beginPath(); ctx.ellipse(0, -145, 8 + flick * 2, 8 + flick * 2, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// Update loop
+// ---------------------------------------------------------------------------
+function update(dt) {
+  if (levelTransition) {
+    levelTransitionTimer -= dt;
+    if (muzzleFlash > 0) muzzleFlash--;
+    if (hurtFlash > 0) hurtFlash--;
+    updateSparkParticles(dt);
+    updateFlameParticles(dt);
+    updateTracers(dt);
+    updateImpactParticles(dt);
+    updateAmbient(dt);
+    if (levelTransitionTimer <= 0) {
+      levelTransition = false;
+      startLevel(levelIndex + 1);
+    }
+    return;
+  }
+  if (gameOver || won) return;
+
+  // Mouse look (moving the mouse right turns the view right)
+  const turnSpeed = 0.0024;
+  const mouseRot = mouseDX * turnSpeed;
+  mouseDX = 0;
+  if (mouseRot !== 0) rotatePlayer(mouseRot);
+
+  // Vertical look (moving the mouse up/down shifts the horizon, walls and
+  // sprites up/down on screen — this is what lets a shot actually land on
+  // an enemy's feet vs its head instead of always hitting body-center).
+  const MAX_PITCH = 130;
+  pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch - mouseDY * 0.8));
+  mouseDY = 0;
+
+  // Scroll-wheel look: scrolling right turns right, scrolling left turns left.
+  const scrollTurnSpeed = 0.0022;
+  if (scrollTurn !== 0) {
+    rotatePlayer(scrollTurn * scrollTurnSpeed);
+    scrollTurn = 0;
+  }
+
+  // Keyboard turning fallback (rotatePlayer(+) turns right, (-) turns left)
+  const kTurn = 2.4 * dt;
+  if (keys["ArrowLeft"]) rotatePlayer(-kTurn);
+  if (keys["ArrowRight"]) rotatePlayer(kTurn);
+
+  const moveSpeed = 3.0 * dt;
+  let mx = 0, my = 0;
+  if (keys["KeyW"]) { mx += player.dirX; my += player.dirY; }
+  if (keys["KeyS"]) { mx -= player.dirX; my -= player.dirY; }
+  if (keys["KeyA"]) { mx += player.dirY; my -= player.dirX; }
+  if (keys["KeyD"]) { mx -= player.dirY; my += player.dirX; }
+  // Virtual joystick (touch): forward/back and strafe axes in the same
+  // player-relative basis as the WASD contributions above.
+  mx += player.dirX * joyForward - player.dirY * joyStrafe;
+  my += player.dirY * joyForward + player.dirX * joyStrafe;
+  const mlen = Math.hypot(mx, my);
+  if (mlen > 0) {
+    mx = (mx / mlen) * moveSpeed;
+    my = (my / mlen) * moveSpeed;
+    const pad = 0.2;
+    if (isOpen(player.x + mx + Math.sign(mx) * pad, player.y)) player.x += mx;
+    if (isOpen(player.x, player.y + my + Math.sign(my) * pad)) player.y += my;
+  }
+
+  // Weapon firing / fuel
+  const curWeapon = WEAPONS[currentWeaponKey];
+  if (mouseHeld && curWeapon.mode === "auto") tickFlamethrower(dt);
+  if (!(mouseHeld && currentWeaponKey === "flamethrower")) {
+    flameLoopSetActive(false);
+    const fw = WEAPONS.flamethrower;
+    if (fuel < fw.maxFuel) {
+      fuel = Math.min(fw.maxFuel, fuel + fw.fuelRegen * dt);
+      if (currentWeaponKey === "flamethrower") updateHud();
+    }
+  }
+
+  // Enemy AI
+  const now = performance.now();
+  frameFlowField = null;
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    if (e.hitFlash > 0) e.hitFlash--;
+    const stats = ENEMY_TYPES[e.type];
+    const dx = player.x - e.x, dy = player.y - e.y;
+    const dist = Math.hypot(dx, dy);
+    // "aware" (spotted the player, within detect range and line of sight)
+    // drives the aggressive face/expression and the roar/bellow cue, and is
+    // broader than "hunting" (aware AND still outside biting range) — an
+    // enemy standing right next to the player between attacks stays aware
+    // and snarling rather than reverting to a calm idle look.
+    const wasAware = e.aware;
+    const aware = dist < stats.detect && hasLineOfSight(e.x, e.y, player.x, player.y);
+    e.aware = aware;
+    if (aware && !wasAware) {
+      if (e.type === "polarbear") sfxRoar();
+      else if (e.type === "walrus") sfxWalrusBellow();
+    }
+    const hunting = aware && dist > stats.attackRange;
+
+    if (hunting) {
+      e.hunting = true;
+      const [wx, wy] = chaseWaypoint(e.x, e.y);
+      let wdx = wx - e.x, wdy = wy - e.y;
+      let wdist = Math.hypot(wdx, wdy) || 1;
+      if (e.type === "stoat") {
+        // Erratic dodge: weave side to side across its approach line rather
+        // than beelining, so it's a much harder target to land a shot on.
+        // The weave narrows as it closes in (scaled by dist) so it can still
+        // actually reach the player and bite instead of orbiting forever.
+        e.zigzagPhase += dt * 10;
+        const perpX = -wdy / wdist, perpY = wdx / wdist;
+        const weave = Math.sin(e.zigzagPhase) * Math.min(1.1, dist * 0.4);
+        wdx += perpX * weave;
+        wdy += perpY * weave;
+        wdist = Math.hypot(wdx, wdy) || 1;
+      }
+      const speed = stats.speed * dt;
+      const nx = e.x + (wdx / wdist) * speed;
+      const ny = e.y + (wdy / wdist) * speed;
+      if (isOpen(nx, e.y)) e.x = nx;
+      if (isOpen(e.x, ny)) e.y = ny;
+    } else {
+      e.hunting = false;
+      if (aware && dist <= stats.attackRange && now - e.lastAttack > stats.attackCooldown) {
+        e.lastAttack = now;
+        player.hp -= stats.damage;
+        hurtFlash = HURT_FLASH_PEAK;
+        sfxPlayerHurt();
+        if (player.hp <= 0) { player.hp = 0; gameOver = true; sfxGameOver(); }
+        updateHud();
+      } else if (!aware) {
+        // Idle roaming: penguins waddle, polar bears lumber, walruses barely
+        // shuffle — all at a slow fraction of their (unchanged) chase speed,
+        // in a random heading that changes on a timer, with occasional
+        // pauses and a wall-bounce so they don't shove uselessly into a
+        // corner. Only when the player hasn't been spotted — an aware enemy
+        // that's merely on attack cooldown holds its ground and glares
+        // instead of waddling off mid-fight.
+        e.wanderTimer -= dt;
+        if (e.wanderTimer <= 0) {
+          e.wanderTimer = stats.wanderInterval[0] + Math.random() * (stats.wanderInterval[1] - stats.wanderInterval[0]);
+          if (Math.random() < stats.wanderPauseChance) {
+            e.wanderDirX = 0; e.wanderDirY = 0;
+          } else {
+            const angle = Math.random() * Math.PI * 2;
+            e.wanderDirX = Math.cos(angle);
+            e.wanderDirY = Math.sin(angle);
+          }
+        }
+        if (e.wanderDirX !== 0 || e.wanderDirY !== 0) {
+          const wSpeed = stats.speed * stats.wanderSpeedMult * dt;
+          const nx = e.x + e.wanderDirX * wSpeed;
+          const ny = e.y + e.wanderDirY * wSpeed;
+          const openX = isOpen(nx, e.y), openY = isOpen(e.x, ny);
+          if (openX) e.x = nx; else e.wanderDirX = -e.wanderDirX;
+          if (openY) e.y = ny; else e.wanderDirY = -e.wanderDirY;
+          if (!openX && !openY) e.wanderTimer = 0;
+        }
+      } else {
+        e.wanderDirX = 0; e.wanderDirY = 0;
+      }
+    }
+
+    // Walk-cycle animation phase: advances faster while actually moving
+    // (chasing or wandering) than while standing still, scaled by the
+    // enemy's own speed stat so a lumbering walrus visibly shuffles slower
+    // than a waddling penguin.
+    const moving = hunting || e.wanderDirX !== 0 || e.wanderDirY !== 0;
+    e.animPhase += dt * stats.speed * (moving ? 2.2 : 0.6);
+  }
+
+  if (muzzleFlash > 0) muzzleFlash--;
+  if (hurtFlash > 0) hurtFlash--;
+  recoilOffset = Math.max(0, recoilOffset - 46 * dt);
+  if (!(mouseHeld && currentWeaponKey === "flamethrower")) flameShakeX = 0;
+  updateSparkParticles(dt);
+  updateFlameParticles(dt);
+  updateTracers(dt);
+  updateImpactParticles(dt);
+  updateAmbient(dt);
+}
+
+function rotatePlayer(rot) {
+  const oldDirX = player.dirX;
+  player.dirX = player.dirX * Math.cos(rot) - player.dirY * Math.sin(rot);
+  player.dirY = oldDirX * Math.sin(rot) + player.dirY * Math.cos(rot);
+  const oldPlaneX = player.planeX;
+  player.planeX = player.planeX * Math.cos(rot) - player.planeY * Math.sin(rot);
+  player.planeY = oldPlaneX * Math.sin(rot) + player.planeY * Math.cos(rot);
+}
+
+// ---------------------------------------------------------------------------
+// Raycasting render
+// ---------------------------------------------------------------------------
+const zBuffer = new Array(SCREEN_W);
+
+function render() {
+  const level = LEVELS[levelIndex];
+  // Horizon shifts with vertical look (pitch) — walls, sprites and the
+  // sky/floor split all move together so aiming up/down is consistent.
+  const horizon = SCREEN_H / 2 + pitch;
+
+  // Sky/ceiling: per-sector gradient plus a pre-rendered decoration layer
+  // (ice glints, stalactites, or drifting embers depending on the sector).
+  const grad = ctx.createLinearGradient(0, 0, 0, horizon);
+  grad.addColorStop(0, level.sky[0]);
+  grad.addColorStop(1, level.sky[1]);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, SCREEN_W, Math.max(0, horizon));
+  if (level.ceilingCanvas) ctx.drawImage(level.ceilingCanvas, 0, horizon - SCREEN_H / 2);
+
+  // Floor: gradient plus a tiled speckle/crack pattern baked per sector.
+  const floorGrad = ctx.createLinearGradient(0, horizon, 0, SCREEN_H);
+  floorGrad.addColorStop(0, level.floorShade);
+  floorGrad.addColorStop(1, level.floorColor);
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(0, Math.max(0, horizon), SCREEN_W, SCREEN_H - Math.max(0, horizon));
+  if (level.floorPattern) {
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = level.floorPattern;
+    ctx.fillRect(0, Math.max(0, horizon), SCREEN_W, SCREEN_H - Math.max(0, horizon));
+    ctx.restore();
+  }
+
+  for (let x = 0; x < SCREEN_W; x++) {
+    const cameraX = (2 * x) / SCREEN_W - 1;
+    const rayDirX = player.dirX + player.planeX * cameraX;
+    const rayDirY = player.dirY + player.planeY * cameraX;
+
+    let mapX = Math.floor(player.x), mapY = Math.floor(player.y);
+    const deltaDistX = rayDirX === 0 ? 1e30 : Math.abs(1 / rayDirX);
+    const deltaDistY = rayDirY === 0 ? 1e30 : Math.abs(1 / rayDirY);
+
+    let stepX, stepY, sideDistX, sideDistY;
+    if (rayDirX < 0) { stepX = -1; sideDistX = (player.x - mapX) * deltaDistX; }
+    else { stepX = 1; sideDistX = (mapX + 1 - player.x) * deltaDistX; }
+    if (rayDirY < 0) { stepY = -1; sideDistY = (player.y - mapY) * deltaDistY; }
+    else { stepY = 1; sideDistY = (mapY + 1 - player.y) * deltaDistY; }
+
+    let hit = 0, side = 0, guard = 0;
+    while (hit === 0 && guard < 256) {
+      guard++;
+      if (sideDistX < sideDistY) { sideDistX += deltaDistX; mapX += stepX; side = 0; }
+      else { sideDistY += deltaDistY; mapY += stepY; side = 1; }
+      if (mapX < 0 || mapY < 0 || mapX >= MAP_SIZE || mapY >= MAP_SIZE) { hit = 1; break; }
+      if (MAP[mapIdx(mapX, mapY)] === 1) hit = 1;
+    }
+
+    const perpWallDist = side === 0
+      ? (mapX - player.x + (1 - stepX) / 2) / (rayDirX || 1e-9)
+      : (mapY - player.y + (1 - stepY) / 2) / (rayDirY || 1e-9);
+    const dist = Math.max(perpWallDist, 0.0001);
+    zBuffer[x] = dist;
+
+    const lineHeight = Math.floor(SCREEN_H / dist);
+    const drawStart = Math.max(0, -lineHeight / 2 + horizon);
+    const drawEnd = Math.min(SCREEN_H, lineHeight / 2 + horizon);
+
+    // Block tint: each map cell gets a deterministic shade variance so walls
+    // don't read as one flat slab, plus a darker mortar line at cell edges.
+    const wallX = side === 0 ? player.y + dist * rayDirY : player.x + dist * rayDirX;
+    const wallFrac = wallX - Math.floor(wallX);
+    const variance = 0.85 + hash2(mapX, mapY) * 0.3;
+    const base = side === 0 ? level.wallHigh : level.wallLow;
+    let r = base[0] * variance, g = base[1] * variance, b = base[2] * variance;
+    if (wallFrac < 0.05 || wallFrac > 0.95) { r *= 0.55; g *= 0.55; b *= 0.55; }
+
+    const shade = Math.max(0.12, 1 - dist / level.fogDensity);
+    r *= shade; g *= shade; b *= shade;
+
+    // Fog blend: distant walls fade toward the sector's atmosphere color.
+    const fogT = Math.min(1, Math.max(0, (dist - level.fogDensity * 0.55) / (level.fogDensity * 0.9)));
+    r += (level.fogColor[0] - r) * fogT;
+    g += (level.fogColor[1] - g) * fogT;
+    b += (level.fogColor[2] - b) * fogT;
+
+    ctx.fillStyle = `rgb(${r | 0}, ${g | 0}, ${b | 0})`;
+    ctx.fillRect(x, drawStart, 1, drawEnd - drawStart);
+  }
+
+  renderSprites();
+  drawAmbient();
+
+  drawWeapon(currentWeaponKey, recoilOffset, flameShakeX);
+  if (tracers.length) drawTracers();
+  if (impactParticles.length) drawImpactParticles();
+  if (flameParticles.length) drawFlameParticles();
+  if (sparkParticles.length) drawSparkParticles();
+
+  if (muzzleFlash > 0) {
+    const glowColor = currentWeaponKey === "flamethrower" ? "255,150,60" : currentWeaponKey === "harpoon" ? "255,210,140" : "190,240,255";
+    const glowSize = currentWeaponKey === "flamethrower" ? 60 : 42;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillStyle = `rgba(${glowColor},${(muzzleFlash / 14) * 0.55})`;
+    ctx.beginPath();
+    ctx.ellipse(SCREEN_W / 2, SCREEN_H * 0.76 - recoilOffset + pitch, glowSize, glowSize * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Damage vignette: a red glow pulsing in from the screen edges each time
+  // the player is hit, fading over HURT_FLASH_PEAK frames.
+  if (hurtFlash > 0) {
+    const t = hurtFlash / HURT_FLASH_PEAK;
+    const vignette = ctx.createRadialGradient(SCREEN_W / 2, SCREEN_H / 2, SCREEN_H * 0.25, SCREEN_W / 2, SCREEN_H / 2, SCREEN_H * 0.75);
+    vignette.addColorStop(0, "rgba(160,0,0,0)");
+    vignette.addColorStop(1, `rgba(160,0,0,${t * 0.6})`);
+    ctx.save();
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+    ctx.restore();
+  }
+
+  renderMinimap();
+}
+
+function renderSprites() {
+  const items = [];
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    const dx = e.x - player.x, dy = e.y - player.y;
+    items.push({ kind: "enemy", e, dist: dx * dx + dy * dy });
+  }
+  for (const p of levelProps) {
+    const dx = p.x - player.x, dy = p.y - player.y;
+    items.push({ kind: "prop", p, dist: dx * dx + dy * dy });
+  }
+  items.sort((a, b) => b.dist - a.dist);
+
+  const invDet = 1.0 / (player.planeX * player.dirY - player.dirX * player.planeY);
+
+  for (const item of items) {
+    const isEnemy = item.kind === "enemy";
+    const stats = isEnemy ? ENEMY_TYPES[item.e.type] : { scale: item.p.scale };
+    const target = isEnemy ? item.e : item.p;
+    const proj = projectSprite(target, stats, invDet);
+    if (!proj) continue;
+    const { drawStartX, drawEndX, drawStartY, spriteWidth, spriteHeight, transformY } = proj;
+    if (drawEndX < 0 || drawStartX > SCREEN_W) continue;
+
+    const spriteCanvas = isEnemy ? currentSpriteFrame(stats, item.e) : item.p.canvas;
+
+    // Find contiguous unoccluded column runs against the depth buffer.
+    let runStart = null;
+    for (let sx = Math.max(0, drawStartX); sx <= Math.min(SCREEN_W - 1, drawEndX); sx++) {
+      const visible = transformY < zBuffer[sx];
+      if (visible && runStart === null) runStart = sx;
+      if ((!visible || sx === Math.min(SCREEN_W - 1, drawEndX)) && runStart !== null) {
+        const runEnd = visible ? sx + 1 : sx;
+        if (isEnemy) drawSpriteRun(item.e, spriteCanvas, drawStartX, drawStartY, spriteWidth, spriteHeight, runStart, runEnd);
+        else drawPropRun(spriteCanvas, drawStartX, drawStartY, spriteWidth, spriteHeight, runStart, runEnd);
+        runStart = null;
+      }
+    }
+  }
+}
+
+function drawPropRun(canvas, drawStartX, drawStartY, spriteWidth, spriteHeight, runStart, runEnd) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(runStart, drawStartY, runEnd - runStart, spriteHeight);
+  ctx.clip();
+  ctx.drawImage(canvas, drawStartX, drawStartY, spriteWidth, spriteHeight);
+  ctx.restore();
+}
+
+// Scratch canvas used to composite the hit-flash tint so it only lands on
+// the sprite's own opaque pixels (source-atop against a canvas containing
+// nothing but the sprite) instead of tinting its whole bounding rectangle.
+const spriteScratchCanvas = document.createElement("canvas");
+spriteScratchCanvas.width = SPRITE_SIZE;
+spriteScratchCanvas.height = SPRITE_SIZE;
+const spriteScratchCtx = spriteScratchCanvas.getContext("2d");
+
+function drawSpriteRun(e, spriteCanvas, drawStartX, drawStartY, spriteWidth, spriteHeight, runStart, runEnd) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(runStart, drawStartY, runEnd - runStart, spriteHeight);
+  ctx.clip();
+  if (e.hitFlash > 0) {
+    spriteScratchCtx.clearRect(0, 0, SPRITE_SIZE, SPRITE_SIZE);
+    spriteScratchCtx.drawImage(spriteCanvas, 0, 0);
+    spriteScratchCtx.globalCompositeOperation = "source-atop";
+    spriteScratchCtx.globalAlpha = Math.min(1, e.hitFlash / 8) * 0.9;
+    spriteScratchCtx.fillStyle = "#ff3b3b";
+    spriteScratchCtx.fillRect(0, 0, SPRITE_SIZE, SPRITE_SIZE);
+    spriteScratchCtx.globalAlpha = 1;
+    spriteScratchCtx.globalCompositeOperation = "source-over";
+    ctx.drawImage(spriteScratchCanvas, drawStartX, drawStartY, spriteWidth, spriteHeight);
+  } else {
+    ctx.drawImage(spriteCanvas, drawStartX, drawStartY, spriteWidth, spriteHeight);
+  }
+  ctx.restore();
+}
+
+function renderMinimap() {
+  const level = LEVELS[levelIndex];
+  const scale = mmCanvas.width / MAP_SIZE;
+  const wallTint = `rgb(${level.wallHigh[0] * 0.35 | 0},${level.wallHigh[1] * 0.35 | 0},${level.wallHigh[2] * 0.35 | 0})`;
+  mmCtx.clearRect(0, 0, mmCanvas.width, mmCanvas.height);
+  for (let y = 0; y < MAP_SIZE; y++) {
+    for (let x = 0; x < MAP_SIZE; x++) {
+      mmCtx.fillStyle = MAP[mapIdx(x, y)] === 1 ? wallTint : "#0a1a2ecc";
+      mmCtx.fillRect(x * scale, y * scale, scale, scale);
+    }
+  }
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    mmCtx.fillStyle = e.type === "walrus" ? "#c9a878" : e.type === "polarbear" ? "#ffffff" : e.type === "stoat" ? "#cfe6e8" : "#7fe8ff";
+    mmCtx.beginPath();
+    mmCtx.arc(e.x * scale, e.y * scale, e.type === "walrus" ? 4 : e.type === "polarbear" ? 3 : e.type === "stoat" ? 1.4 : 2, 0, Math.PI * 2);
+    mmCtx.fill();
+  }
+  mmCtx.fillStyle = "#7fffb0";
+  mmCtx.beginPath();
+  mmCtx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI * 2);
+  mmCtx.fill();
+  mmCtx.strokeStyle = "#7fffb0";
+  mmCtx.beginPath();
+  mmCtx.moveTo(player.x * scale, player.y * scale);
+  mmCtx.lineTo((player.x + player.dirX) * scale, (player.y + player.dirY) * scale);
+  mmCtx.stroke();
+}
+
+function renderEndState() {
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  ctx.fillStyle = won ? "#7fffb0" : "#ff6b6b";
+  ctx.font = "bold 40px 'Courier New', monospace";
+  ctx.textAlign = "center";
+  ctx.fillText(won ? "ALL SECTORS CLEARED" : "YOU HAVE BEEN WADDLED ON", SCREEN_W / 2, SCREEN_H / 2 - 10);
+  ctx.font = "20px 'Courier New', monospace";
+  ctx.fillStyle = "#eafcff";
+  ctx.fillText("Press R to play again", SCREEN_W / 2, SCREEN_H / 2 + 30);
+  ctx.textAlign = "left";
+}
+
+function renderLevelTransition() {
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  ctx.fillStyle = "#7fffb0";
+  ctx.font = "bold 32px 'Courier New', monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("SECTOR CLEARED", SCREEN_W / 2, SCREEN_H / 2 - 14);
+  ctx.font = "20px 'Courier New', monospace";
+  ctx.fillStyle = "#eafcff";
+  ctx.fillText("Entering " + LEVELS[levelIndex + 1].name, SCREEN_W / 2, SCREEN_H / 2 + 22);
+  ctx.textAlign = "left";
+}
+
+// ---------------------------------------------------------------------------
+// Main loop
+// ---------------------------------------------------------------------------
+let lastTime = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  if (running) {
+    update(dt);
+    render();
+    if (gameOver || won) renderEndState();
+    else if (levelTransition) renderLevelTransition();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

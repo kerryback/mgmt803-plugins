@@ -1,0 +1,8 @@
+{
+  "name": "density-weight-converter",
+  "description": "Scaffold a density-to-weight unit converter web app: a FastAPI backend that converts a density (g/cm3) and a volume (ft3) to a weight in pounds, with an optional tons-per-acre mode from thickness and acreage.",
+  "version": "0.1.0",
+  "author": {
+    "name": "HighLordLangford"
+  }
+}

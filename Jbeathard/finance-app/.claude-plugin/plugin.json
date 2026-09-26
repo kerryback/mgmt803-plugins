@@ -1,0 +1,8 @@
+{
+  "name": "finance-app",
+  "description": "Scaffold a loan payment calculator web app: FastAPI backend computing monthly payment, total paid, and total interest from loan amount, rate, and term, with a matching form UI.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jack Beathard"
+  }
+}

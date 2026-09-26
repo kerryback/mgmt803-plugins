@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-head">
+    <span class="head-ic c-purple">{{ icon('sparkles') }}</span>
+    <h2>Chores</h2>
+    <button class="btn primary sm" id="add-chore" type="button">{{ icon('plus') }} Chore</button>
+  </div>
+  <p class="muted">Chores can take turns between kids, switching every day or every week. Every chore earns stars.</p>
+  <div class="idea-row" id="chore-ideas"></div>
+  <div class="chore-grid" id="chore-grid"></div>
+</section>
+{% endblock %}

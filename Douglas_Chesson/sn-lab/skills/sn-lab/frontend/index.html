@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SN1 / SN2 Reaction Lab</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>SN1 / SN2 Reaction Lab</h1>
+  <p class="subtitle">Pick a substrate, nucleophile, and solvent to see which mechanism wins -- and watch it happen.</p>
+</header>
+
+<main class="layout">
+  <section class="panel controls" aria-label="Reaction setup">
+    <h2>1. Set up the reaction</h2>
+
+    <div class="field">
+      <label for="substrate">Substrate</label>
+      <select id="substrate"></select>
+    </div>
+    <div class="field">
+      <label for="nucleophile">Nucleophile</label>
+      <select id="nucleophile"></select>
+    </div>
+    <div class="field">
+      <label for="solvent">Solvent</label>
+      <select id="solvent"></select>
+    </div>
+
+    <div class="examples">
+      <p class="examples-label">Not sure where to start? Try an example:</p>
+      <div class="example-buttons" id="example-buttons"></div>
+    </div>
+
+    <button id="visualize-btn" class="primary-btn">Visualize the reaction</button>
+  </section>
+
+  <section class="panel verdict" aria-label="Predicted mechanism" id="verdict-panel" hidden>
+    <h2>2. Predicted mechanism: <span id="verdict-label"></span></h2>
+    <ul id="verdict-reasons"></ul>
+  </section>
+
+  <section class="panel stage" aria-label="Mechanism animation" id="stage-panel" hidden>
+    <h2>3. Watch it react</h2>
+    <div class="stage-grid">
+      <div class="scene-wrap">
+        <svg id="scene" viewBox="0 0 460 260" role="img" aria-label="Reaction mechanism animation"></svg>
+        <div class="scene-caption" id="scene-caption"></div>
+      </div>
+      <div class="energy-wrap">
+        <svg id="energy" viewBox="0 0 300 160" role="img" aria-label="Reaction energy diagram"></svg>
+      </div>
+    </div>
+
+    <div class="transport">
+      <button id="reset-btn" title="Back to start">&#8676; Reset</button>
+      <button id="step-back-btn" title="Previous keyframe">&#9664; Step</button>
+      <button id="play-btn" title="Play / pause">&#9654; Play</button>
+      <button id="step-fwd-btn" title="Next keyframe">Step &#9654;</button>
+      <label class="speed-label">Speed
+        <input type="range" id="speed" min="0.4" max="2.5" step="0.1" value="1">
+      </label>
+      <input type="range" id="scrub" min="0" max="1" step="0.001" value="0" aria-label="Scrub through the reaction">
+    </div>
+  </section>
+
+  <section class="panel legend">
+    <h2>Reading the diagram</h2>
+    <ul>
+      <li><strong>Nu</strong> -- the nucleophile, attacking the electrophilic carbon.</li>
+      <li><strong>LG</strong> -- the leaving group, departing with the bonding electrons.</li>
+      <li>Solid bond = fully formed. Dashed bond = partially formed/broken.</li>
+      <li>In SN2 the three other groups flip through a flat transition state, like an umbrella turning inside out -- this is the <em>inversion of configuration</em>.</li>
+      <li>In SN1 the leaving group departs first, leaving a flat carbocation that the nucleophile can then attack from either face.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="foot">
+  This is a teaching tool over a curated set of textbook substrates, nucleophiles, and solvents -- not a general
+  structure drawer.
+</footer>
+
+<script src="chemistry.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

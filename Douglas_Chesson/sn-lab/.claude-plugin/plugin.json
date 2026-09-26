@@ -1,0 +1,8 @@
+{
+  "name": "sn-lab",
+  "description": "An interactive local app that animates SN1 and SN2 nucleophilic substitution mechanisms. Pick a substrate, nucleophile, and solvent from a curated textbook set (or let the app suggest an example), and it predicts which mechanism dominates -- with the reasoning -- then animates the backside attack and inversion of SN2 or the carbocation intermediate of SN1, alongside a reaction-energy diagram.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Douglas Chesson"
+  }
+}

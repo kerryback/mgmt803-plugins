@@ -1,0 +1,8 @@
+{
+  "name": "job-scout",
+  "description": "Daily job-posting scout. Builds a profile from your resume and target jobs, searches current postings, scores each against your background, emails a digest of the best matches with key posting data, and recommends specific resume changes to compete better. Personal data stays in ~/job-scout/, never in the plugin.",
+  "version": "1.0.0",
+  "author": {
+    "name": "bazingasc"
+  }
+}

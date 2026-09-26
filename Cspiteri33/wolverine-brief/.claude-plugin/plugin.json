@@ -1,0 +1,8 @@
+{
+  "name": "wolverine-brief",
+  "description": "A weekly market brief in the voice of Wolverine: pulls the last week of prices for stocks, Treasuries, the dollar, gold and oil from Yahoo Finance and gives a blunt, accurate take on the biggest moves. No API key needed.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Cspiteri33"
+  }
+}

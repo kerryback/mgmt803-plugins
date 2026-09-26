@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card soon c-{{ color }}">
+  <span class="soon-ic">{{ icon(section_icon) }}</span>
+  <h2>{{ page_title }}</h2>
+  <p class="soon-sub">{{ subtitle }}</p>
+  <p class="muted">This page is set up and waiting. Calendars and tasks for the whole family are ready to use now.</p>
+  <div class="soon-actions">
+    <a class="btn primary" href="/calendar">{{ icon('calendar') }} Open calendar</a>
+    <a class="btn ghost" href="/tasks">{{ icon('check') }} Open tasks</a>
+  </div>
+</section>
+{% endblock %}
