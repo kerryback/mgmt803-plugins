@@ -30,5 +30,6 @@ Provide an interactive local Skew-T forecast viewer. The bundled page fetches pr
 - Temperatures are Celsius; wind speed is knots.
 - Wind direction is meteorological (where wind comes from). The barb shaft points to its heading: 360° north/up, 090° east/right, 180° south/down, 270° west/left.
 - The chart uses pressure-level model forecasts interpolated between levels; these are not observed balloon soundings. Do not describe forecast values as measurements.
+- The chart marks the model's 0°C altitude. A red cursor alert marks saturated model air below freezing, but this does not confirm aircraft icing or supercooled liquid water; point users to current official icing forecasts.
 - Surface/API errors should be shown to the user; never invent fallback weather values.
 - The bundled server binds to 127.0.0.1 by default.

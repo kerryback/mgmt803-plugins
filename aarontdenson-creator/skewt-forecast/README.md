@@ -16,3 +16,6 @@ Then ask Claude to set up or launch the forecast Skew-T app.
 Copy the files from `skills/skewt-forecast/assets/` to a folder, run `python server.py`, and open http://127.0.0.1:8000. Python 3 and an internet connection are required. The app uses Open-Meteo pressure-level forecasts and needs no API key for personal use.
 
 These are model forecast profiles, not observed radiosonde launches. Available pressure levels and model resolution vary by location.
+
+
+The chart marks the forecast 0°C crossing with its altitude. If the cursor is in a saturated model layer below freezing, its tooltip turns red and shows an icing warning. Treat that as a model cue, not a confirmed icing forecast; check official aviation icing products.
