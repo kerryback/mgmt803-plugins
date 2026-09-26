@@ -378,6 +378,16 @@ HTML_PAGE = """
   }
   button:hover { background: var(--accent-dark); }
   button:disabled { background: var(--muted); cursor: not-allowed; }
+  .secondary-btn {
+    margin-top: 0;
+    width: auto;
+    background: transparent;
+    color: var(--accent-dark);
+    border: 1px solid var(--accent);
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+  .secondary-btn:hover { background: var(--bg); color: var(--accent-dark); }
   #progress { margin-top: 16px; font-size: 0.9rem; color: var(--accent-dark); display: none; }
   h3 { margin-top: 0; color: var(--accent-dark); }
   #book-list { list-style: none; padding: 0; margin: 0; }
@@ -427,6 +437,7 @@ HTML_PAGE = """
 <div class="layout">
   <div class="panel" id="form-panel">
     <h3>New Book</h3>
+    <button type="button" id="randomize-btn" class="secondary-btn">Randomize Inputs</button>
     <form id="book-form">
       <label>Character name</label>
       <input type="text" name="character_name" required placeholder="e.g. Pip">
@@ -512,6 +523,80 @@ HTML_PAGE = """
 <script>
 let currentBook = null;
 let currentPage = 0;
+
+const RANDOM_POOL = {
+  character_name: ['Pip', 'Luna', 'Milo', 'Bramble', 'Sage', 'Nimbus', 'Coco', 'Ziggy', 'Clementine', 'Otto'],
+  character_description: [
+    'a small orange fox with a blue scarf and round glasses',
+    'a fluffy white rabbit with oversized ears and a polka-dot bowtie',
+    'a curious blue-feathered owl with tiny spectacles',
+    'a shy purple dragon with speckled wings',
+    'a bold green turtle with a tiny backpack',
+    'a sleepy gray koala who wears a knitted hat',
+    'a clever red panda with a striped scarf',
+    'a tiny yellow duckling with red rain boots',
+  ],
+  art_style: [
+    'soft watercolor storybook',
+    'bold flat-color cartoon',
+    'pastel pencil sketch',
+    'cut-paper collage',
+    'whimsical crayon doodle',
+    'claymation-style stop-motion look',
+    'retro 1960s picture book',
+    'dreamy pastel chalk',
+  ],
+  moral: [
+    "it's okay to ask for help",
+    'kindness always comes back around',
+    'mistakes are how we learn',
+    'sharing makes everything better',
+    'being different is something to celebrate',
+    'slow and steady wins the day',
+    'true friends stick together',
+    "it's brave to try new things",
+  ],
+  setting: [
+    'a quiet forest village',
+    'a floating city in the clouds',
+    'an underwater coral kingdom',
+    'a cozy treehouse town',
+    'a desert oasis full of surprises',
+    'a snow-covered mountain village',
+    'a bustling city park',
+    'a magical library between the shelves',
+  ],
+  age_range: ['', 'toddler (2-4)', 'early reader (5-7)', 'middle grade (8-10)'],
+  supporting_characters: [
+    '',
+    'a wise old owl',
+    'a mischievous younger sibling',
+    'a loyal best friend',
+    'a grumpy but kind neighbor',
+    'a talking compass',
+  ],
+  tone: ['', 'silly and playful', 'gentle and heartwarming', 'adventurous', 'spooky-but-safe'],
+};
+
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function randomizeForm() {
+  const form = document.getElementById('book-form');
+  form.character_name.value = pickRandom(RANDOM_POOL.character_name);
+  form.character_description.value = pickRandom(RANDOM_POOL.character_description);
+  form.art_style.value = pickRandom(RANDOM_POOL.art_style);
+  form.moral.value = pickRandom(RANDOM_POOL.moral);
+  form.setting.value = pickRandom(RANDOM_POOL.setting);
+  form.age_range.value = pickRandom(RANDOM_POOL.age_range);
+  form.supporting_characters.value = pickRandom(RANDOM_POOL.supporting_characters);
+  form.tone.value = pickRandom(RANDOM_POOL.tone);
+  form.num_pages.value = 4 + Math.floor(Math.random() * 7); // 4-10
+  form.rhyming.checked = Math.random() < 0.5;
+}
+
+document.getElementById('randomize-btn').addEventListener('click', randomizeForm);
 
 async function loadBooks() {
   const resp = await fetch('books');
