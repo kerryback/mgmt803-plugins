@@ -113,7 +113,7 @@
     {
       "name": "voiceover",
       "source": "./kerryback/voiceover",
-      "description": "Turn a slide deck into a narrated MP4 video plus a transcript. Give it the PDF of your slides — named on the command line or uploaded in the app — and Claude writes the narration; a local app shows each slide beside its script, where you edit it, pick an ElevenLabs voice, and generate. The MP4 + transcript are saved to the project folder."
+      "description": "Turn a slide deck into a narrated MP4 video plus a transcript. Give it the PDF of your slides \u2014 named on the command line or uploaded in the app \u2014 and Claude writes the narration; a local app shows each slide beside its script, where you edit it, pick an ElevenLabs voice, and generate. The MP4 + transcript are saved to the project folder."
     },
     {
       "name": "wolverine-brief",
@@ -124,6 +124,11 @@
       "name": "skewt-forecast",
       "source": "./aarontdenson-creator/skewt-forecast",
       "description": "Build or launch an interactive 24-hour forecast Skew-T app for airports or coordinates. Shows Celsius temperature and dewpoint, winds in knots, cursor altitude and pressure, and wind barbs oriented to meteorological from-heading. Uses Open-Meteo; no API key for personal use."
+    },
+    {
+      "name": "piano-transcriber",
+      "source": "./caitlinlorenz/piano-transcriber",
+      "description": "Turn a song into piano sheet music. Give it a SoundCloud/YouTube link, a search query, or an uploaded audio file, and a local app separates out the melody and bass, transcribes the notes, and arranges them for two hands at easy/medium/hard difficulty. Preview each arrangement, play it back, and download the labeled PDF. No API key needed."
     }
   ]
 }

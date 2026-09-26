@@ -51,6 +51,7 @@ restarts.
 | `voiceover@mgmt803` | Kerry Back | Turns a slide PDF into a narrated MP4 plus a transcript, with a local app for editing the script and picking a voice. Needs an ElevenLabs API key. |
 | `sn-lab@mgmt803` | Douglas Chesson | Animates SN1 and SN2 nucleophilic substitution. Pick a substrate, nucleophile and solvent from a curated textbook set; it predicts which mechanism dominates, explains why, and animates it beside a reaction-energy diagram. No dependencies. |
 | `math-atelier@mgmt803` | Jennifer Lane | A self-contained page for math practice. One HTML file, nothing to install. |
+| `piano-transcriber@mgmt803` | Caitlin Lorenz | Turns a song — a link, a search query, or an uploaded file — into piano sheet music at easy/medium/hard difficulty, with in-browser playback and a labeled PDF download. Runs entirely locally; no API key needed. |
 
 ## App scaffolds
 

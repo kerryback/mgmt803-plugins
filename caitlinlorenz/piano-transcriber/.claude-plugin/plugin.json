@@ -1,0 +1,8 @@
+{
+  "name": "piano-transcriber",
+  "description": "Turn a song into piano sheet music. Give it a SoundCloud/YouTube link, a search query, or an uploaded audio file, and a local app separates out the melody and bass, transcribes the notes, and arranges them for two hands at easy/medium/hard difficulty. Preview each arrangement, play it back, and download the labeled PDF. No API key needed.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Caitlin Lorenz"
+  }
+}
