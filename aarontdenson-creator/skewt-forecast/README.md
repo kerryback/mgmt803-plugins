@@ -1,6 +1,6 @@
-﻿# skewt-forecast
+# skewt-forecast
 
-An interactive Skew-T forecast app for airports or custom coordinates. Select forecast hours through the next 24 hours, inspect temperature and dewpoint in Celsius, and move over the profile for interpolated altitude and pressure. Wind barbs use meteorological from-directions: 360° up, 090° right, 180° down, and 270° left.
+An interactive Skew-T forecast app for airports or custom coordinates. Airport code edits and airport selections load automatically. Select forecast hours through the next 24 hours, inspect temperature and dewpoint in Celsius, and move over the profile for interpolated altitude and pressure. Wind barbs use meteorological from-directions: 360° up, 090° right, 180° down, and 270° left.
 
 ## Install
 

@@ -1,4 +1,4 @@
-﻿---
+---
 name: skewt-forecast
 description: >-
   Set up, launch, or adapt an interactive 24-hour forecast Skew-T web app for
@@ -23,7 +23,7 @@ Provide an interactive local Skew-T forecast viewer. The bundled page fetches pr
    python server.py
    ```
 3. Open http://127.0.0.1:8000. The page needs an internet connection for forecast data.
-4. Use a listed airport ICAO code/name, or type latitude and longitude in the search field if the station is not listed.
+4. Type a listed airport ICAO code; the forecast loads automatically once the code is complete. Selecting an airport name also loads it automatically. If the station is not listed, type latitude and longitude in the search field.
 
 ## Conventions
 
