@@ -453,10 +453,12 @@ const sfx = (() => {
     },
     // rising "bwip"
     jump: play(() => tone({ f0: 300, f1: 720, dur: 0.13, vol: 0.22 })),
-    // soft thud to go with the dust puff
+    // solid landing thud: short, dense impact that stops dead (a long low tail sounds like a hollow drum)
     land: play(() => {
-      noise({ dur: 0.09, vol: 0.35, f0: 500, f1: 150 });
-      tone({ type: "sine", f0: 130, f1: 60, dur: 0.09, vol: 0.35 });
+      noise({ dur: 0.12, vol: 0.6, f0: 380, f1: 110 });                                   // body thud
+      noise({ dur: 0.05, vol: 0.35, filter: "bandpass", f0: 1300, f1: 700 });             // crunch
+      tone({ type: "sine", f0: 95, f1: 55, dur: 0.08, vol: 0.45 });                       // weight, no ring
+      tone({ type: "square", f0: 60, f1: 40, dur: 0.07, vol: 0.1, sweep: { from: 400, to: 150, q: 1 } }); // grit
     }),
     // bright two-note ding, higher for each stacked multiplier
     berry: play(mult => {
@@ -471,12 +473,10 @@ const sfx = (() => {
              sweep: { from: 900, to: 250, q: 6 } });
       noise({ dur: 0.12, vol: 0.06, f0: 700, f1: 200, attack: 0.03 });
     }),
-    // solid bonk: short, dense impact that stops dead (a long low tail sounds like a hollow drum)
+    // bonk: quick soft thump
     bonk: play(() => {
-      noise({ dur: 0.12, vol: 0.6, f0: 380, f1: 110 });                                   // body thud
-      noise({ dur: 0.05, vol: 0.35, filter: "bandpass", f0: 1300, f1: 700 });             // stone crack
-      tone({ type: "sine", f0: 95, f1: 55, dur: 0.08, vol: 0.45 });                       // weight, no ring
-      tone({ type: "square", f0: 60, f1: 40, dur: 0.07, vol: 0.1, sweep: { from: 400, to: 150, q: 1 } }); // grit
+      noise({ dur: 0.09, vol: 0.35, f0: 500, f1: 150 });
+      tone({ type: "sine", f0: 130, f1: 60, dur: 0.09, vol: 0.35 });
     }),
     // low, meaty wet chomp-chomp, then a gulp
     nom: play(() => {
