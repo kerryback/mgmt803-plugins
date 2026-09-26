@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "childrens-book-generator",
-      "source": "./John Poremski/childrens-book-generator",
+      "source": "./JohnPoremski/childrens-book-generator",
       "description": "Scaffold and run a FastAPI app that turns a main character, art style, and moral of the story into a short illustrated children's picture book -- plot beats plus a matching illustration per page, kept consistent by chaining the first illustration back in as a reference for later pages, with an optional rhyming mode. Books save, reopen, and download as a PDF. Uses OpenRouter for both text and images; illustrations need OpenRouter account credits."
     },
     {
