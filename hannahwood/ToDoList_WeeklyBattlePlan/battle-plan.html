@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Battle Plan</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#0f1115;
+    --panel:#171a21;
+    --panel2:#1d212a;
+    --panel3:#232833;
+    --border:#2a2f3a;
+    --text:#e6e8ec;
+    --muted:#8b909c;
+    --tag-work:#5b9bd9;
+    --tag-work-dim:#1f2e3e;
+    --tag-school:#a78bd6;
+    --tag-school-dim:#2c2540;
+    --tag-life:#3fb6a8;
+    --tag-life-dim:#20403c;
+    --urgent:#e06c5c;
+    --urgent-dim:#4a2620;
+    --amber:#d9a441;
+    --amber-dim:#463620;
+    --green:#5cb85c;
+    --green-dim:#1f3a24;
+    --accent:#8b7fd6;
+  }
+  *{box-sizing:border-box;}
+  html,body{background:var(--bg);}
+  body{
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    margin:0;
+    padding:24px;
+    line-height:1.4;
+  }
+  @media (max-width:560px){ body{padding:16px;} }
+  .wrap{max-width:900px;margin:0 auto;}
+  header{margin-bottom:20px;}
+  .title-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  h1{font-size:1.4rem;margin:0 0 4px 0;letter-spacing:.02em;text-wrap:balance;}
+  .sub{color:var(--muted);font-size:.85rem;}
+  .sync{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;}
+  .sync .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+  .sync.ok .dot{background:var(--green);}
+  .sync.saving .dot{background:var(--amber);}
+  .sync.warn .dot{background:var(--urgent);}
+  .progress-row{display:flex;gap:10px;margin-top:14px;}
+  .progress-card{
+    flex:1;background:var(--panel);border:1px solid var(--border);
+    border-radius:10px;padding:10px 14px;
+  }
+  .progress-card .label{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .progress-card .stat{font-size:1.3rem;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;}
+  .bar{height:5px;border-radius:3px;background:var(--border);margin-top:8px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--accent);transition:width .25s ease;}
+
+  .key-row{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-top:12px;}
+  .legend{display:flex;gap:6px 12px;flex-wrap:wrap;align-items:center;font-size:.7rem;color:var(--muted);min-width:0;}
+  .legend .key{display:flex;align-items:center;gap:5px;}
+  .legend .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .legend .key .icon-btn{font-size:.75rem;padding:1px 4px;}
+  .legend .confirm{font-size:.7rem;}
+  .tag-add-btn{
+    font-size:.7rem;font-family:inherit;color:var(--muted);background:none;cursor:pointer;
+    border:1px dashed var(--border);border-radius:20px;padding:2px 9px;
+  }
+  .tag-add-btn:hover{color:var(--text);border-color:var(--accent);}
+  .tag-add-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .tag-new{display:flex;align-items:center;gap:6px;}
+  .tag-new input{
+    background:var(--panel3);border:1px solid var(--accent);color:var(--text);border-radius:20px;
+    padding:3px 10px;font-size:16px;font-family:inherit;width:11em;max-width:100%;
+  }
+  @media (min-width:561px){ .tag-new input{font-size:.75rem;} }
+  .tag-new .dot{width:10px;height:10px;}
+  .edit-form .tag-new input.tag-new-input{width:11em;margin:0;border-radius:20px;padding:3px 10px;border-color:var(--accent);}
+  @media (min-width:561px){ .edit-form .tag-new input.tag-new-input{font-size:.75rem;} }
+  .tag-toggle-add{border-style:dashed;background:none;}
+  .tag-toggle-add:hover{color:var(--text);border-color:var(--accent);}
+
+  .notice{
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:10px 14px;margin-bottom:14px;font-size:.8rem;color:var(--muted);
+  }
+
+  .day{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    margin-bottom:14px;
+    overflow:hidden;
+  }
+  .day-header{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:14px 16px;cursor:pointer;user-select:none;
+  }
+  .day-header:hover{background:var(--panel2);}
+  .day-title{display:flex;align-items:center;gap:10px;min-width:0;}
+  .day-title h2{font-size:1rem;margin:0;font-weight:600;overflow-wrap:anywhere;}
+  .day-note{font-size:.72rem;color:var(--muted);margin-top:2px;}
+  .day-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .day-count{font-size:.75rem;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .chevron{transition:transform .18s ease;color:var(--muted);}
+  .day.collapsed .chevron{transform:rotate(-90deg);}
+  .day-items{padding:0 10px 10px 10px;}
+  .day.collapsed .day-items{display:none;}
+
+  .item{
+    display:flex;align-items:flex-start;gap:10px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:9px 10px;
+    margin-bottom:6px;
+  }
+  .item.dragging{opacity:.85;box-shadow:0 8px 24px rgba(0,0,0,.5);border-color:var(--accent);}
+  .placeholder{border:1px dashed var(--accent);border-radius:9px;margin-bottom:6px;background:var(--panel3);}
+  .drag-handle{
+    color:var(--muted);font-size:1rem;cursor:grab;flex-shrink:0;
+    touch-action:none;user-select:none;padding:2px 6px;margin:-2px -4px -2px -6px;border-radius:5px;
+  }
+  .drag-handle:hover{color:var(--text);background:var(--panel3);}
+  body.is-dragging{cursor:grabbing;user-select:none;}
+
+  .checkbox{
+    width:19px;height:19px;border-radius:5px;border:2px solid var(--muted);background:none;padding:0;
+    flex-shrink:0;margin-top:1px;cursor:pointer;position:relative;
+    transition:all .15s ease;
+  }
+  .checkbox.in-progress{border-color:var(--amber);background:var(--amber-dim);}
+  .checkbox.done{border-color:var(--green);background:var(--green);}
+  .checkbox.done::after{
+    content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:#0f1115;font-size:.75rem;font-weight:700;
+  }
+  .checkbox.in-progress::after{
+    content:'';position:absolute;top:50%;left:50%;width:6px;height:6px;
+    background:var(--amber);border-radius:50%;transform:translate(-50%,-50%);
+  }
+
+  .item-body{flex:1;min-width:0;}
+  .item-title{font-size:.88rem;overflow-wrap:anywhere;}
+  .item.done .item-title{color:var(--muted);text-decoration:line-through;}
+  .item-comment{font-size:.76rem;color:var(--muted);margin-top:4px;font-style:italic;overflow-wrap:anywhere;}
+  .tags{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;}
+  .tag{
+    font-size:.65rem;padding:2px 7px;border-radius:20px;
+    text-transform:uppercase;letter-spacing:.04em;font-weight:600;
+  }
+  .tag-work{background:var(--tag-work-dim);color:var(--tag-work);}
+  .tag-school{background:var(--tag-school-dim);color:var(--tag-school);}
+  .tag-life{background:var(--tag-life-dim);color:var(--tag-life);}
+  .tag-urgent{background:var(--urgent-dim);color:var(--urgent);}
+
+  .item-actions{display:flex;gap:4px;flex-shrink:0;align-items:center;}
+  .icon-btn{
+    background:none;border:none;color:var(--muted);cursor:pointer;
+    font-size:.85rem;padding:3px 5px;border-radius:5px;line-height:1;font-family:inherit;
+  }
+  .icon-btn:hover{background:var(--panel3);color:var(--text);}
+  .icon-btn.delete-btn:hover{color:var(--urgent);}
+  .confirm{display:flex;align-items:center;gap:4px;font-size:.72rem;color:var(--muted);}
+  .confirm .yes{color:var(--urgent);font-weight:600;}
+  button:focus-visible,.add-task-row:focus-visible,.day-header:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .empty-day{color:var(--muted);font-size:.8rem;padding:14px 6px;text-align:center;font-style:italic;}
+
+  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:.72rem;}
+
+  .edit-form{
+    background:var(--panel2);border:1px solid var(--accent);border-radius:9px;
+    padding:10px;margin-bottom:6px;
+  }
+  .day > .edit-form{margin:10px;}
+  .edit-form input[type="text"], .edit-form textarea{
+    width:100%;background:var(--panel3);border:1px solid var(--border);
+    color:var(--text);border-radius:6px;padding:7px 9px;font-size:16px;
+    font-family:inherit;margin-bottom:8px;resize:vertical;
+  }
+  @media (min-width:561px){ .edit-form input[type="text"], .edit-form textarea{font-size:.85rem;} }
+  .edit-form textarea{min-height:40px;}
+  .tag-toggle-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .tag-toggle{
+    font-size:.65rem;padding:4px 9px;border-radius:20px;
+    text-transform:uppercase;letter-spacing:.04em;font-weight:600;font-family:inherit;
+    cursor:pointer;border:1px solid var(--border);background:var(--panel3);
+    color:var(--muted);transition:all .12s ease;
+  }
+  .edit-form-actions{display:flex;gap:8px;justify-content:flex-end;}
+  .btn{
+    font-size:.78rem;padding:6px 14px;border-radius:6px;border:none;cursor:pointer;
+    font-weight:600;font-family:inherit;
+  }
+  .btn-save{background:var(--accent);color:#fff;}
+  .btn-cancel{background:var(--panel3);color:var(--muted);}
+  .btn-save:hover{opacity:.88;}
+  .btn-cancel:hover{color:var(--text);}
+
+  .add-task-row{
+    display:flex;align-items:center;gap:8px;padding:8px 10px;width:100%;
+    color:var(--muted);font-size:.82rem;cursor:pointer;border-radius:9px;background:none;font-family:inherit;text-align:left;
+    border:1px dashed var(--border);margin-top:4px;
+  }
+  .add-task-row:hover{color:var(--text);border-color:var(--accent);}
+  .add-section{margin-top:0;margin-bottom:14px;padding:12px 14px;}
+  .dumpster{background:transparent;border-style:dashed;}
+  .dumpster .day-title h2{color:var(--muted);}
+  .progress-row{align-items:stretch;flex-wrap:wrap;}
+  .pill-btn{
+    font-size:.75rem;font-weight:600;font-family:inherit;padding:7px 12px;border-radius:20px;cursor:pointer;
+    background:var(--panel2);color:var(--text);border:1px solid var(--border);white-space:nowrap;
+  }
+  .pill-btn:hover:not(:disabled){border-color:var(--green);color:var(--green);}
+  .pill-btn:disabled{color:var(--muted);cursor:default;opacity:.7;}
+  .pill-btn.danger{padding:4px 10px;font-size:.7rem;}
+  .pill-btn.danger:hover{border-color:var(--urgent);color:var(--urgent);}
+  .pill-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .readonly .drag-handle,.readonly .item-actions,.readonly .add-task-row,.readonly .sec-edit{display:none;}
+  .readonly .checkbox{cursor:default;}
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important;} }
+
+  /* ---- views: sections / days ---- */
+  .view-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:20px;overflow:hidden;background:var(--panel);}
+  .seg button{background:none;border:none;color:var(--muted);font-family:inherit;font-size:.78rem;font-weight:600;padding:6px 16px;cursor:pointer;}
+  .seg button:hover{color:var(--text);}
+  .seg button[aria-pressed="true"]{background:var(--panel3);color:var(--text);}
+  .week-nav{display:flex;align-items:center;gap:4px;font-size:.8rem;color:var(--muted);flex-wrap:wrap;}
+  .week-nav .wk-label{color:var(--text);font-variant-numeric:tabular-nums;padding:0 4px;white-space:nowrap;}
+  .week-nav .icon-btn{font-size:1rem;padding:3px 8px;}
+  .week-nav .wk-now{font-size:.72rem;}
+  .day.is-today{border-color:var(--accent);}
+  .today-badge{
+    display:inline-block;font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;
+    color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:1px 7px;margin-left:8px;vertical-align:2px;
+  }
+  .overdue{border-color:var(--urgent-dim);}
+  .overdue .day-title h2{color:var(--urgent);}
+  .pill-btn.small{padding:4px 10px;font-size:.7rem;}
+  .meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+  .meta span{font-size:.66rem;color:var(--muted);background:var(--panel3);padding:1px 7px;border-radius:5px;}
+  .meta .late{color:var(--urgent);}
+  .meta .now{color:var(--accent);}
+  .form-row{display:flex;gap:10px 14px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-end;}
+  .form-field{display:flex;flex-direction:column;gap:4px;font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .edit-form select, .edit-form input[type="date"]{
+    background:var(--panel3);border:1px solid var(--border);color:var(--text);border-radius:6px;
+    padding:6px 8px;font-family:inherit;font-size:16px;max-width:100%;
+  }
+  @media (min-width:561px){ .edit-form select, .edit-form input[type="date"]{font-size:.82rem;} }
+  .quick-days{display:flex;gap:4px;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app">
+  <header>
+    <div class="title-row">
+      <h1>Battle Plan</h1>
+      <div class="sync" id="sync"><span class="dot"></span><span id="syncText">Connecting…</span></div>
+    </div>
+    <div class="sub" id="subText">Your tasks, by section or by day.</div>
+    <div class="progress-row" id="progressRow"></div>
+    <div class="key-row">
+      <div class="legend" id="legendRow"></div>
+      <div id="keyActions"></div>
+    </div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+  <div class="view-bar" id="viewBar"></div>
+  <div id="board"></div>
+
+  <footer>Click a box: not started → in progress → done → reset. Drag ⠿ to reorder or move between groups. ✎ to edit (section and day live there too), × to delete. Saves automatically.</footer>
+</div>
+
+<script>
+// ---- TAGS: 'urgent' is reserved for hard deadlines and stacks with any other tag ----
+// Built-in tags can't be deleted. Custom tags live in the `tags` collection.
+const BUILTIN_TAGS = [
+  { id:'work',   label:'Work',          color:'var(--tag-work)',   dim:'var(--tag-work-dim)' },
+  { id:'school', label:'School',        color:'var(--tag-school)', dim:'var(--tag-school-dim)' },
+  { id:'life',   label:'Life',          color:'var(--tag-life)',   dim:'var(--tag-life-dim)' },
+  { id:'urgent', label:'Hard Deadline', color:'var(--urgent)',     dim:'var(--urgent-dim)' },
+];
+// Colors handed out to new tags, in order, skipping ones already taken
+const TAG_PALETTE = [
+  { color:'#e0709c', dim:'#3f2530' }, { color:'#e0915c', dim:'#46301f' },
+  { color:'#9cc45a', dim:'#2d3a1c' }, { color:'#4fc3d9', dim:'#1b3a40' },
+  { color:'#d4c05a', dim:'#3d3818' }, { color:'#c77dd9', dim:'#3a2540' },
+  { color:'#7f95e0', dim:'#252c46' }, { color:'#d98a7f', dim:'#40271f' },
+];
+let customTags = []; // {id, label, color, dim, order}
+
+function allTags(){
+  const custom = [...customTags].sort(byOrder);
+  return BUILTIN_TAGS.concat(custom);
+}
+function tagDef(id){ return BUILTIN_TAGS.find(t => t.id === id) || customTags.find(t => t.id === id); }
+function paintTag(node, def){ node.style.background = def.dim; node.style.color = def.color; }
+function nextTagColor(){
+  const used = new Set(customTags.map(t => t.color));
+  return TAG_PALETTE.find(p => !used.has(p.color)) || TAG_PALETTE[customTags.length % TAG_PALETTE.length];
+}
+
+const DUMP_ID = 'dumpster';
+const DUMPSTER = { id: DUMP_ID, title: 'Done Dumpster', note: 'Finished tasks land here. They still count toward your progress.' };
+
+const LOCAL_KEY = 'battlePlan_standalone_v1';
+const COLLAPSE_KEY = 'battlePlan_synced_collapsed';
+
+let sections = [];   // {id, title, note, order}
+let tasks = [];      // {id, section, title, tags, comment, status, order}
+let db = null;
+let mode = 'loading'; // loading | sync | local
+let readOnly = false;
+let editingId = null;       // task id, 'new:<sectionId>', 'sec:<id>', 'sec:new'
+let confirmId = null;       // task or section id awaiting delete confirmation
+let drag = null;
+let dirty = false;          // a snapshot arrived while editing or dragging
+let pending = 0;
+let collapsed = {};
+try { collapsed = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '{}') || {}; } catch(e) {}
+
+function saveCollapsed(){ try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed)); } catch(e) {} }
+function newId(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function byOrder(a,b){ return (a.order ?? 0) - (b.order ?? 0); }
+function tasksIn(secId){ return tasks.filter(t => t.section === secId).sort(byOrder); }
+function cycleStatus(s){ return s === 'not-started' ? 'in-progress' : s === 'in-progress' ? 'done' : 'not-started'; }
+
+// ---------- persistence ----------
+function setSync(state, text){
+  const el = document.getElementById('sync');
+  el.className = 'sync ' + state;
+  document.getElementById('syncText').textContent = text;
+}
+function refreshSync(){
+  if (mode === 'local') return setSync('warn', 'This device only');
+  if (readOnly) return setSync('warn', 'View only');
+  if (pending > 0) return setSync('saving', 'Saving…');
+  setSync('ok', 'Synced');
+}
+
+const queues = {};
+// One write at a time per document; writes to the same doc are chained.
+function write(path, op){
+  if (mode === 'local') { saveLocal(); return Promise.resolve(); }
+  if (!db || readOnly) return Promise.resolve();
+  pending++; refreshSync();
+  const run = () => op(db.doc(path)).catch(async err => {
+    if (err && err.code === 'unavailable') {
+      await new Promise(r => setTimeout(r, 400 + Math.random()*600));
+      return op(db.doc(path));
+    }
+    throw err;
+  });
+  const p = (queues[path] || Promise.resolve()).then(run).catch(err => {
+    const code = err && err.code;
+    if (code === 'invalid_argument' || code === 'not_granted' || code === 'revoked') {
+      readOnly = true;
+      showNotice('You can view this plan but not change it.');
+      render();
+    } else if (code === 'quota_exceeded') {
+      showNotice('The plan is full. Delete some finished tasks to add new ones.');
+    } else {
+      showNotice('A change didn\'t save. Check your connection and try again.');
+    }
+  }).finally(() => { pending--; refreshSync(); });
+  queues[path] = p;
+  return p;
+}
+function clean(obj){ return JSON.parse(JSON.stringify(obj)); }
+function putTask(t){ const {id, ...body} = t; body.updatedAt = Date.now(); return write('tasks/' + id, ref => ref.set(clean(body))); }
+function patchTask(t, fields){ Object.assign(t, fields); return putTask(t); }
+function delTask(id){ return write('tasks/' + id, ref => ref.delete()); }
+function putSection(s){ const {id, ...body} = s; return write('sections/' + id, ref => ref.set(clean(body))); }
+function delSection(id){ return write('sections/' + id, ref => ref.delete()); }
+
+function putTag(t){ const {id, ...body} = t; return write('tags/' + id, ref => ref.set(clean(body))); }
+function delTag(id){ return write('tags/' + id, ref => ref.delete()); }
+
+function saveLocal(){ try { localStorage.setItem(LOCAL_KEY, JSON.stringify({sections, tasks, customTags})); } catch(e) {} }
+function loadLocal(){
+  try {
+    const raw = JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null');
+    if (raw) { sections = raw.sections || []; tasks = raw.tasks || []; customTags = raw.customTags || []; return; }
+  } catch(e) {}
+  sections = [
+    { id:'todo', title:'Things to Do', note:'', order:1 },
+    { id:'read', title:'Things to Read/Grok', note:'', order:2 },
+    { id:'sync', title:'Things to Sync About', note:'', order:3 },
+  ];
+  tasks = [
+    { id:'ex1', section:'todo', day:todayStr(), dayOrder:1, title:'Example task: drag me into another section', tags:['school'], comment:'Example. Delete it once you\'ve added real tasks.', status:'not-started', order:1 },
+    { id:'ex2', section:'todo', day:null, dayOrder:1, title:'Example deadline task', tags:['school','urgent'], comment:'Example. Click the box to cycle its status.', status:'in-progress', order:2 },
+  ];
+}
+
+function showNotice(msg){ const n = document.getElementById('notice'); n.textContent = msg; n.hidden = !msg; }
+
+function onData(){
+  if (editingId || drag) { dirty = true; return; }
+  render();
+}
+
+async function init(){
+  render();
+  let ns = null;
+  try { ns = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch(e) { ns = null; }
+  if (!ns) {
+    mode = 'local'; loadLocal(); refreshSync();
+    document.getElementById('subText').textContent = 'Saved in this browser on this device. See the README to sync across devices.';
+    render(); return;
+  }
+  db = ns; mode = 'sync'; refreshSync();
+  document.getElementById('subText').textContent = 'Synced across your devices. Open this link anywhere you\'re signed in to Claude.';
+  let gotS = false, gotT = false;
+  const onErr = err => { showNotice('Lost the connection to your plan. Reload to reconnect.'); setSync('warn', 'Disconnected'); };
+  db.collection('sections').onSnapshot(snap => {
+    sections = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    gotS = true; if (gotT) onData();
+  }, onErr);
+  db.collection('tasks').onSnapshot(snap => {
+    tasks = snap.docs.map(d => { const x = d.data(); return { id:d.id, ...x, tags: Array.isArray(x.tags) ? [...x.tags] : [] }; });
+    gotT = true; if (gotS) onData();
+  }, onErr);
+  db.collection('tags').onSnapshot(snap => {
+    customTags = snap.docs.map(d => ({ id:d.id, ...d.data() })).filter(t => t.label && t.color && t.dim);
+    if (gotS && gotT) onData();
+  }, onErr);
+  try {
+    const u = await window.claude.use('user');
+    if (u && typeof u.can === 'function') {
+      const ok = await u.can('data.write');
+      if (ok === false) { readOnly = true; refreshSync(); render(); }
+    }
+  } catch(e) {}
+}
+
+// ---------- rendering ----------
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+// ---------- views & dates ----------
+// Every task has a `section` (bucket) and an optional `day` ('YYYY-MM-DD', local).
+// Sections view groups by section; Days view groups by day. Same task either way.
+const VIEW_KEY = 'battlePlan_synced_view';
+let view = 'sections';
+try { if (localStorage.getItem(VIEW_KEY) === 'days') view = 'days'; } catch(e) {}
+let weekOffset = 0;
+const pastOpen = new Set(); // past days opened during this visit
+
+const DOW_LONG = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const DOW_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function pad(n){ return (n < 10 ? '0' : '') + n; }
+function ymd(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function parseYmd(s){ const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function todayStr(){ return ymd(new Date()); }
+function addDays(s, n){ const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); }
+function fmtLong(s){ const d = parseYmd(s); return DOW_LONG[d.getDay()] + ', ' + (d.getMonth() + 1) + '/' + d.getDate(); }
+function fmtShort(s){ const d = parseYmd(s); return DOW_SHORT[d.getDay()] + ' ' + (d.getMonth() + 1) + '/' + d.getDate(); }
+function weekDates(offset){
+  const now = new Date();
+  const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7) + offset * 7);
+  return Array.from({ length: 7 }, (_, i) => ymd(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i)));
+}
+function weekLabel(dates){
+  const f = s => parseYmd(s).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  return f(dates[0]) + ' – ' + f(dates[6]);
+}
+
+function regularSections(){ return sections.filter(s => s.id !== DUMP_ID).sort(byOrder); }
+function firstSectionId(){ const s = regularSections()[0]; return s ? s.id : ''; }
+function sectionTitle(id){ const s = sections.find(x => x.id === id); return s ? s.title : ''; }
+function byKey(k){ return (a, b) => (a[k] ?? a.order ?? 0) - (b[k] ?? b.order ?? 0); }
+function endOrder(secId){ return tasks.filter(t => t.section === secId).reduce((m, t) => Math.max(m, t.order ?? 0), 0) + 1; }
+function endDayOrder(day){ return tasks.filter(t => (t.day || null) === day).reduce((m, t) => Math.max(m, t.dayOrder ?? 0), 0) + 1; }
+function isOverdue(t, today){ return !!t.day && t.day < today && t.status !== 'done' && t.section !== DUMP_ID; }
+// Where a task goes when it leaves the Dumpster from the Days view
+function returnSection(t){
+  const ids = new Set(regularSections().map(s => s.id));
+  return ids.has(t.prevSection) ? t.prevSection : firstSectionId();
+}
+
+function setView(v){
+  view = v; editingId = null; confirmId = null;
+  try { localStorage.setItem(VIEW_KEY, v); } catch(e) {}
+  render();
+}
+
+// Re-render when the date rolls over (midnight, or reopening the tab another day)
+let lastToday = todayStr();
+function checkDate(){ const t = todayStr(); if (t !== lastToday) { lastToday = t; onData(); } }
+setInterval(checkDate, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDate(); });
+
+// ---------- task form ----------
+// ctx: { section, day } — where a new task starts; ignored when editing
+function renderTaskForm(ctx, item){
+  const isNew = item === null;
+  const wrap = el('div', 'edit-form');
+  const titleInput = el('input'); titleInput.type = 'text'; titleInput.id = 'f-title'; titleInput.placeholder = 'Task title';
+  titleInput.value = isNew ? '' : item.title;
+
+  // Section + day pickers
+  const row = el('div', 'form-row');
+  const secField = el('label', 'form-field', 'Section');
+  const sel = el('select'); sel.id = 'f-section';
+  const opts = regularSections().map(s => [s.id, s.title]);
+  const curSec = isNew ? ctx.section : item.section;
+  if (curSec === DUMP_ID) opts.push([DUMP_ID, DUMPSTER.title]);
+  opts.forEach(([v, label]) => { const o = el('option', null, label); o.value = v; sel.appendChild(o); });
+  sel.value = opts.some(o => o[0] === curSec) ? curSec : (opts[0] ? opts[0][0] : '');
+  secField.appendChild(sel);
+
+  const dayField = el('label', 'form-field', 'Day');
+  const dateIn = el('input'); dateIn.type = 'date'; dateIn.id = 'f-day';
+  dateIn.value = (isNew ? ctx.day : item.day) || '';
+  dayField.appendChild(dateIn);
+
+  const quick = el('div', 'quick-days');
+  [['Today', () => todayStr()], ['Tomorrow', () => addDays(todayStr(), 1)], ['No day', () => '']].forEach(([label, fn]) => {
+    const b = el('button', 'tag-toggle', label); b.type = 'button';
+    b.addEventListener('click', () => { dateIn.value = fn(); });
+    quick.appendChild(b);
+  });
+  row.append(secField, dayField, quick);
+
+  const tagRow = el('div', 'tag-toggle-row');
+  const active = new Set(isNew ? [] : item.tags.filter(tagDef));
+  let addingTag = false;
+  const renderChips = () => {
+    tagRow.innerHTML = '';
+    allTags().forEach(def => {
+      const chip = el('button', 'tag-toggle', def.label);
+      chip.type = 'button';
+      const paint = () => {
+        const on = active.has(def.id);
+        chip.classList.toggle('active', on);
+        chip.style.background = on ? def.dim : '';
+        chip.style.color = on ? def.color : '';
+        chip.style.borderColor = on ? def.color : '';
+      };
+      paint();
+      chip.addEventListener('click', () => { active.has(def.id) ? active.delete(def.id) : active.add(def.id); paint(); });
+      tagRow.appendChild(chip);
+    });
+    if (readOnly) return;
+    if (!addingTag) {
+      const add = el('button', 'tag-toggle tag-toggle-add', '+ New tag');
+      add.type = 'button';
+      add.addEventListener('click', () => { addingTag = true; renderChips(); });
+      tagRow.appendChild(add);
+      return;
+    }
+    // Inline new-tag box: creates the tag and switches it on for this task
+    const color = nextTagColor();
+    const box = el('span', 'tag-new');
+    const d = el('span', 'dot'); d.style.background = color.color;
+    const input = el('input', 'tag-new-input'); input.type = 'text'; input.id = 'f-new-tag'; input.placeholder = 'Tag name'; input.maxLength = 24;
+    const ok = el('button', 'icon-btn', 'Add'); ok.type = 'button';
+    const no = el('button', 'icon-btn', 'Cancel'); no.type = 'button';
+    const commit = () => {
+      const tag = createTag(input.value, color, input);
+      if (!tag) return;
+      active.add(tag.id);
+      addingTag = false; renderChips();
+    };
+    ok.addEventListener('click', commit);
+    no.addEventListener('click', () => { addingTag = false; renderChips(); });
+    input.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      if (e.key === 'Escape') { addingTag = false; renderChips(); }
+    });
+    box.append(d, input, ok, no);
+    tagRow.appendChild(box);
+    setTimeout(() => input.focus(), 0);
+  };
+  renderChips();
+
+  const comment = el('textarea'); comment.id = 'f-comment'; comment.placeholder = 'Comment (optional)';
+  comment.value = isNew ? '' : (item.comment || '');
+  const actions = el('div', 'edit-form-actions');
+  const cancel = el('button', 'btn btn-cancel', 'Cancel');
+  const save = el('button', 'btn btn-save', isNew ? 'Add task' : 'Save');
+  cancel.addEventListener('click', closeEdit);
+  save.addEventListener('click', () => {
+    const title = titleInput.value.trim();
+    if (!title) { titleInput.focus(); return; }
+    const secVal = sel.value;
+    const dayVal = dateIn.value || null;
+    if (isNew) {
+      const t = { id:newId('t'), section:secVal, day:dayVal, title, tags:[...active], comment:comment.value.trim(),
+                  status:'not-started', order:endOrder(secVal), dayOrder:endDayOrder(dayVal) };
+      tasks.push(t); putTask(t);
+    } else {
+      const fields = { title, tags:[...active], comment:comment.value.trim() };
+      if (secVal !== item.section) {
+        fields.section = secVal; fields.order = endOrder(secVal);
+        if (secVal === DUMP_ID) fields.prevSection = item.section;
+      }
+      if (dayVal !== (item.day || null)) { fields.day = dayVal; fields.dayOrder = endDayOrder(dayVal); fields.originalDay = null; }
+      patchTask(item, fields);
+    }
+    closeEdit();
+  });
+  titleInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save.click(); }
+    if (e.key === 'Escape') cancel.click();
+  });
+  actions.append(cancel, save);
+  wrap.append(titleInput, row, tagRow, comment, actions);
+  setTimeout(() => titleInput.focus(), 0);
+  return wrap;
+}
+
+// ---------- bulk moves ----------
+function moveOverdueToToday(){
+  const today = todayStr();
+  const over = tasks.filter(t => isOverdue(t, today))
+    .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : (a.dayOrder ?? 0) - (b.dayOrder ?? 0)));
+  let next = endDayOrder(today);
+  over.forEach(t => patchTask(t, { originalDay: t.originalDay || t.day, day: today, dayOrder: next++ }));
+  render();
+}
+function moveNoDayToToday(){
+  const today = todayStr();
+  const list = tasks.filter(t => !t.day && t.section !== DUMP_ID).sort(byKey('dayOrder'));
+  let next = endDayOrder(today);
+  list.forEach(t => patchTask(t, { day: today, dayOrder: next++ }));
+  render();
+}
+
+// ---------- groups ----------
+function dumpGroup(){
+  return { kind:'dump', key:DUMP_ID, value:DUMP_ID, title:DUMPSTER.title, note:DUMPSTER.note,
+           items: tasks.filter(t => t.section === DUMP_ID).sort(byKey('order')) };
+}
+function sectionGroups(){
+  const secs = regularSections();
+  const valid = new Set(secs.map(s => s.id)); valid.add(DUMP_ID);
+  const gs = secs.map((s, i) => ({
+    kind:'section', key:s.id, value:s.id, sec:s, title:s.title, note:s.note,
+    // Tasks whose section no longer exists show up in the first section
+    items: tasks.filter(t => t.section === s.id || (i === 0 && !valid.has(t.section))).sort(byKey('order')),
+  }));
+  gs.push({ kind:'addsec' });
+  gs.push(dumpGroup());
+  return gs;
+}
+function dayGroups(){
+  const today = todayStr();
+  const live = tasks.filter(t => t.section !== DUMP_ID);
+  const gs = [];
+  const over = live.filter(t => isOverdue(t, today))
+    .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : (a.dayOrder ?? 0) - (b.dayOrder ?? 0)));
+  if (over.length) gs.push({ kind:'overdue', key:'overdue', value:'', title:'Overdue', note:'Unfinished tasks from days that have passed.', items:over });
+  gs.push({ kind:'noday', key:'noday', value:'', title:'No day yet', note:'Drag these onto a day, or add them all to today.',
+            items: live.filter(t => !t.day).sort(byKey('dayOrder')) });
+  weekDates(weekOffset).forEach(d => gs.push({
+    kind:'day', key:'d:' + d, value:d, title:fmtLong(d), isToday: d === today, isPast: d < today,
+    items: live.filter(t => t.day === d && !isOverdue(t, today)).sort(byKey('dayOrder')),
+  }));
+  gs.push(dumpGroup());
+  return gs;
+}
+function newKey(g){ return 'new:' + g.kind + ':' + g.value; }
+
+// ---------- rendering ----------
+function renderViewBar(){
+  const bar = document.getElementById('viewBar');
+  bar.innerHTML = '';
+  const seg = el('div', 'seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'View');
+  [['sections', 'Sections'], ['days', 'Days']].forEach(([v, label]) => {
+    const b = el('button', null, label);
+    b.setAttribute('aria-pressed', String(view === v));
+    b.addEventListener('click', () => { if (view !== v) setView(v); });
+    seg.appendChild(b);
+  });
+  bar.appendChild(seg);
+  if (view !== 'days') return;
+  const nav = el('div', 'week-nav');
+  const prev = el('button', 'icon-btn', '‹'); prev.setAttribute('aria-label', 'Previous week');
+  const next = el('button', 'icon-btn', '›'); next.setAttribute('aria-label', 'Next week');
+  prev.addEventListener('click', () => { weekOffset--; editingId = null; render(); });
+  next.addEventListener('click', () => { weekOffset++; editingId = null; render(); });
+  const label = el('span', 'wk-label', (weekOffset === 0 ? 'This week · ' : '') + weekLabel(weekDates(weekOffset)));
+  nav.append(prev, label, next);
+  if (weekOffset !== 0) {
+    const now = el('button', 'pill-btn small wk-now', 'Back to this week');
+    now.addEventListener('click', () => { weekOffset = 0; editingId = null; render(); });
+    nav.appendChild(now);
+  }
+  bar.appendChild(nav);
+}
+
+function renderItem(item, g){
+  const today = todayStr();
+  const itemEl = el('div', 'item' + (item.status === 'done' ? ' done' : ''));
+  itemEl.dataset.taskId = item.id;
+
+  const handle = el('span', 'drag-handle', '⠿');
+  handle.title = 'Drag to move';
+  handle.addEventListener('pointerdown', e => startDrag(e, itemEl, item));
+
+  const box = el('button', 'checkbox' + (item.status === 'in-progress' ? ' in-progress' : item.status === 'done' ? ' done' : ''));
+  box.setAttribute('aria-label', 'Status: ' + item.status.replace('-', ' '));
+  box.addEventListener('click', e => {
+    e.stopPropagation();
+    if (readOnly) return;
+    patchTask(item, { status: cycleStatus(item.status) });
+    render();
+  });
+
+  const body = el('div', 'item-body');
+  body.appendChild(el('div', 'item-title', item.title));
+  if (item.tags.length) {
+    const tg = el('div', 'tags');
+    item.tags.map(tagDef).filter(Boolean).forEach(def => { const s = el('span', 'tag', def.label); paintTag(s, def); tg.appendChild(s); });
+    body.appendChild(tg);
+  }
+
+  // Cross-view hints: which day (in Sections) or which section (in Days)
+  const meta = [];
+  if (view === 'days' && item.section !== DUMP_ID && sectionTitle(item.section)) meta.push([sectionTitle(item.section), '']);
+  if (g.kind === 'overdue') meta.push(['Planned ' + fmtShort(item.day), 'late']);
+  else if (item.section !== DUMP_ID) {
+    if (view === 'sections' && item.day) {
+      const late = isOverdue(item, today);
+      meta.push([item.day === today ? 'Today' : fmtShort(item.day), late ? 'late' : item.day === today ? 'now' : '']);
+    }
+    if (item.originalDay && item.originalDay !== item.day) meta.push(['Moved from ' + fmtShort(item.originalDay), '']);
+  }
+  if (meta.length) {
+    const m = el('div', 'meta');
+    meta.forEach(([text, cls]) => m.appendChild(el('span', cls || null, text)));
+    body.appendChild(m);
+  }
+  if (item.comment) body.appendChild(el('div', 'item-comment', item.comment));
+
+  const actions = el('div', 'item-actions');
+  if (confirmId === item.id) {
+    actions.appendChild(confirmBox(() => { tasks = tasks.filter(t => t.id !== item.id); delTask(item.id); }));
+  } else {
+    const edit = el('button', 'icon-btn edit-btn', '✎'); edit.title = 'Edit'; edit.setAttribute('aria-label', 'Edit task');
+    edit.addEventListener('click', e => { e.stopPropagation(); editingId = item.id; render(); });
+    const del = el('button', 'icon-btn delete-btn', '×'); del.title = 'Delete'; del.setAttribute('aria-label', 'Delete task');
+    del.addEventListener('click', e => { e.stopPropagation(); confirmId = item.id; render(); });
+    actions.append(edit, del);
+  }
+
+  itemEl.append(handle, box, body, actions);
+  return itemEl;
+}
+
+function renderGroup(g){
+  const isDump = g.kind === 'dump';
+  // Past days start collapsed on every load; opening one only lasts for this visit
+  const isCollapsed = g.isPast ? !pastOpen.has(g.key) : !!collapsed[g.key];
+  const cls = 'day' + (isDump ? ' dumpster' : '') + (g.kind === 'overdue' ? ' overdue' : '') + (g.isToday ? ' is-today' : '') + (isCollapsed ? ' collapsed' : '');
+  const dayEl = el('section', cls);
+
+  if (g.kind === 'section' && editingId === 'sec:' + g.value) {
+    dayEl.appendChild(renderSectionForm(g.sec));
+    return dayEl;
+  }
+
+  const items = g.items;
+  const done = items.filter(i => i.status === 'done').length;
+
+  const header = el('div', 'day-header');
+  header.tabIndex = 0;
+  header.setAttribute('role', 'button');
+  header.setAttribute('aria-expanded', String(!isCollapsed));
+  const titleWrap = el('div', 'day-title');
+  titleWrap.appendChild(el('span', 'chevron', '▾'));
+  const tw = el('div');
+  const h2 = el('h2', null, g.title);
+  if (g.isToday) h2.appendChild(el('span', 'today-badge', 'Today'));
+  tw.appendChild(h2);
+  if (g.note) tw.appendChild(el('div', 'day-note', g.note));
+  titleWrap.appendChild(tw);
+
+  const right = el('div', 'day-right');
+  const countOnly = isDump || g.kind === 'overdue' || g.kind === 'noday';
+  right.appendChild(el('span', 'day-count', countOnly ? String(items.length) : done + '/' + items.length));
+  const stop = fn => e => { e.stopPropagation(); fn(); };
+
+  if (isDump) {
+    if (confirmId === 'dump:clear') {
+      right.appendChild(confirmBox(() => clearDumpster(), 'Delete ' + items.length + (items.length === 1 ? ' task' : ' tasks') + ' for good?'));
+    } else if (items.length) {
+      const empty = el('button', 'pill-btn danger sec-edit', 'Empty dumpster');
+      empty.addEventListener('click', stop(() => { confirmId = 'dump:clear'; render(); }));
+      right.appendChild(empty);
+    }
+  } else if (g.kind === 'overdue') {
+    const b = el('button', 'pill-btn small sec-edit', 'Move all to today');
+    b.addEventListener('click', stop(moveOverdueToToday));
+    right.appendChild(b);
+  } else if (g.kind === 'noday') {
+    if (items.length) {
+      const b = el('button', 'pill-btn small sec-edit', 'Add all to today');
+      b.addEventListener('click', stop(moveNoDayToToday));
+      right.appendChild(b);
+    }
+  } else if (g.kind === 'section') {
+    if (confirmId === g.value) {
+      right.appendChild(confirmBox(() => { sections = sections.filter(s => s.id !== g.value); delSection(g.value); }));
+    } else {
+      const edit = el('button', 'icon-btn sec-edit', '✎'); edit.title = 'Rename section'; edit.setAttribute('aria-label', 'Rename section');
+      edit.addEventListener('click', stop(() => { editingId = 'sec:' + g.value; render(); }));
+      right.appendChild(edit);
+      if (items.length === 0) {
+        const del = el('button', 'icon-btn delete-btn sec-edit', '×'); del.title = 'Delete empty section'; del.setAttribute('aria-label', 'Delete section');
+        del.addEventListener('click', stop(() => { confirmId = g.value; render(); }));
+        right.appendChild(del);
+      }
+    }
+  }
+  header.append(titleWrap, right);
+  const toggle = () => {
+    if (g.isPast) { pastOpen.has(g.key) ? pastOpen.delete(g.key) : pastOpen.add(g.key); }
+    else { collapsed[g.key] = !collapsed[g.key]; saveCollapsed(); }
+    render();
+  };
+  header.addEventListener('click', toggle);
+  header.addEventListener('keydown', e => { if (e.target === header && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggle(); } });
+  dayEl.appendChild(header);
+
+  const list = el('div', 'day-items');
+  list.dataset.kind = g.kind;
+  list.dataset.value = g.value;
+
+  const emptyText = { section:'Nothing here. Suspicious.', day:'Nothing planned.', noday:'Everything has a day.',
+                      overdue:'', dump:'Empty. Finish something and toss it in.' }[g.kind];
+  if (items.length === 0 && editingId !== newKey(g)) list.appendChild(el('div', 'empty-day', emptyText));
+
+  items.forEach(item => {
+    if (editingId === item.id) list.appendChild(renderTaskForm(null, item));
+    else list.appendChild(renderItem(item, g));
+  });
+
+  if (g.kind === 'section' || g.kind === 'day' || g.kind === 'noday') {
+    if (editingId === newKey(g)) {
+      const ctx = { section: g.kind === 'section' ? g.value : firstSectionId(), day: g.kind === 'day' ? g.value : null };
+      list.appendChild(renderTaskForm(ctx, null));
+    } else {
+      const add = el('button', 'add-task-row', '+ Add task');
+      add.addEventListener('click', () => { editingId = newKey(g); render(); });
+      list.appendChild(add);
+    }
+  }
+  dayEl.appendChild(list);
+  return dayEl;
+}
+
+function render(){
+  document.getElementById('app').classList.toggle('readonly', readOnly);
+  renderViewBar();
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  if (mode === 'loading') {
+    board.appendChild(el('div', 'empty-day', 'Loading your plan…'));
+    document.getElementById('progressRow').innerHTML = '';
+    return;
+  }
+
+  const groups = view === 'days' ? dayGroups() : sectionGroups();
+  groups.forEach(g => board.appendChild(g.kind === 'addsec' ? renderAddSection() : renderGroup(g)));
+
+  // Every task counts, Dumpster included, so progress doesn't drop when you tidy up
+  const total = tasks.length;
+  const doneAll = tasks.filter(t => t.status === 'done').length;
+  const pct = total ? (doneAll / total * 100) : 0;
+  const movable = tasks.filter(t => t.status === 'done' && t.section !== DUMP_ID).length;
+  const row = document.getElementById('progressRow');
+  row.innerHTML =
+    '<div class="progress-card"><div class="label">Total Progress</div><div class="stat">' + doneAll + '/' + total +
+    '</div><div class="bar"><div class="bar-fill" style="width:' + pct + '%"></div></div></div>';
+  const keyActions = document.getElementById('keyActions');
+  keyActions.innerHTML = '';
+  if (!readOnly) {
+    const toss = el('button', 'pill-btn', movable ? 'Move ' + movable + ' done to Dumpster' : 'Nothing done to move');
+    toss.id = 'toss-done';
+    toss.disabled = !movable;
+    toss.addEventListener('click', moveDoneToDumpster);
+    keyActions.appendChild(toss);
+  }
+
+  renderLegend();
+}
+function renderSectionForm(sec){
+  const isNew = sec === null;
+  const wrap = el('div', 'edit-form');
+  const t = el('input'); t.type = 'text'; t.id = 's-title'; t.placeholder = 'Section title (e.g. Things to Read)';
+  t.value = isNew ? '' : sec.title;
+  const n = el('input'); n.type = 'text'; n.id = 's-note'; n.placeholder = 'Note under the title (optional)';
+  n.value = isNew ? '' : (sec.note || '');
+  const actions = el('div', 'edit-form-actions');
+  const cancel = el('button', 'btn btn-cancel', 'Cancel');
+  const save = el('button', 'btn btn-save', isNew ? 'Add section' : 'Save');
+  cancel.addEventListener('click', closeEdit);
+  save.addEventListener('click', () => {
+    const title = t.value.trim();
+    if (!title) { t.focus(); return; }
+    if (isNew) {
+      const sorted = [...sections].sort(byOrder);
+      const s = { id:newId('s'), title, note:n.value.trim(), order: sorted.length ? sorted[sorted.length-1].order + 1 : 1 };
+      sections.push(s); putSection(s);
+    } else {
+      sec.title = title; sec.note = n.value.trim(); putSection(sec);
+    }
+    closeEdit();
+  });
+  [t, n].forEach(inp => inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save.click(); }
+    if (e.key === 'Escape') cancel.click();
+  }));
+  actions.append(cancel, save);
+  wrap.append(t, n, actions);
+  setTimeout(() => t.focus(), 0);
+  return wrap;
+}
+
+function closeEdit(){ editingId = null; dirty = false; render(); }
+
+function renderAddSection(){
+  if (editingId === 'sec:new') return renderSectionForm(null);
+  const addSec = el('button', 'add-task-row add-section', '+ Add section');
+  addSec.addEventListener('click', () => { editingId = 'sec:new'; render(); });
+  return addSec;
+}
+
+function moveDoneToDumpster(){
+  const done = tasks.filter(t => t.status === 'done' && t.section !== DUMP_ID);
+  if (!done.length) return;
+  // Keep their relative order: by section position, then task order
+  const secPos = {};
+  [...sections].sort(byOrder).forEach((s, i) => { secPos[s.id] = i; });
+  done.sort((a, b) => (secPos[a.section] ?? -1) - (secPos[b.section] ?? -1) || byOrder(a, b));
+  const inDump = tasksIn(DUMP_ID);
+  let next = inDump.length ? inDump[inDump.length - 1].order + 1 : 1;
+  done.forEach(t => patchTask(t, { prevSection: t.section, section: DUMP_ID, order: next++ }));
+  render();
+}
+
+function clearDumpster(){
+  const doomed = tasks.filter(t => t.section === DUMP_ID);
+  tasks = tasks.filter(t => t.section !== DUMP_ID);
+  doomed.forEach(t => delTask(t.id));
+}
+
+function confirmBox(onYes, label){
+  const box = el('span', 'confirm');
+  box.append(label || 'Delete?');
+  const yes = el('button', 'icon-btn yes', 'Yes');
+  const no = el('button', 'icon-btn', 'No');
+  yes.addEventListener('click', e => { e.stopPropagation(); confirmId = null; onYes(); render(); });
+  no.addEventListener('click', e => { e.stopPropagation(); confirmId = null; render(); });
+  box.append(yes, no);
+  return box;
+}
+function renderLegend(){
+  const legend = document.getElementById('legendRow');
+  legend.innerHTML = '';
+  allTags().forEach(def => {
+    const s = el('span', 'key');
+    const d = el('span', 'dot'); d.style.background = def.color;
+    s.append(d, def.label);
+    const isCustom = !BUILTIN_TAGS.includes(def);
+    if (isCustom && !readOnly) {
+      if (confirmId === 'tag:' + def.id) {
+        const n = tasks.filter(t => t.tags.includes(def.id)).length;
+        s.appendChild(confirmBox(() => deleteTag(def.id), n ? 'Delete tag? It comes off ' + n + (n === 1 ? ' task.' : ' tasks.') : 'Delete tag?'));
+      } else {
+        const x = el('button', 'icon-btn delete-btn', '×');
+        x.title = 'Delete tag'; x.setAttribute('aria-label', 'Delete tag ' + def.label);
+        x.addEventListener('click', () => { confirmId = 'tag:' + def.id; render(); });
+        s.appendChild(x);
+      }
+    }
+    legend.appendChild(s);
+  });
+  if (readOnly) return;
+
+  if (editingId === 'tag:new') {
+    const color = nextTagColor();
+    const wrap = el('span', 'tag-new');
+    const d = el('span', 'dot'); d.style.background = color.color;
+    const input = el('input'); input.type = 'text'; input.id = 'new-tag'; input.placeholder = 'Tag name'; input.maxLength = 24;
+    const save = el('button', 'icon-btn', 'Add');
+    const cancel = el('button', 'icon-btn', 'Cancel');
+    const commit = () => { if (createTag(input.value, color, input)) closeEdit(); };
+    save.addEventListener('click', commit);
+    cancel.addEventListener('click', closeEdit);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      if (e.key === 'Escape') closeEdit();
+    });
+    wrap.append(d, input, save, cancel);
+    legend.appendChild(wrap);
+    setTimeout(() => input.focus(), 0);
+  } else {
+    const add = el('button', 'tag-add-btn', '+ Tag');
+    add.addEventListener('click', () => { editingId = 'tag:new'; render(); });
+    legend.appendChild(add);
+  }
+}
+
+// Returns the new tag, or null (and flags the input) when the name is empty or taken
+function createTag(rawLabel, color, input){
+  const label = rawLabel.trim();
+  if (!label) { input.focus(); return null; }
+  if (allTags().some(t => t.label.toLowerCase() === label.toLowerCase())) {
+    input.value = ''; input.placeholder = 'That tag exists'; input.focus(); return null;
+  }
+  const maxOrder = customTags.reduce((m, t) => Math.max(m, t.order || 0), 0);
+  const tag = { id: newId('g'), label, color: color.color, dim: color.dim, order: maxOrder + 1 };
+  customTags.push(tag); putTag(tag);
+  return tag;
+}
+
+function deleteTag(id){
+  customTags = customTags.filter(t => t.id !== id);
+  delTag(id);
+  tasks.filter(t => t.tags.includes(id)).forEach(t => patchTask(t, { tags: t.tags.filter(x => x !== id) }));
+}
+
+// ---------- drag and drop (pointer events: works with mouse and touch) ----------
+function startDrag(e, itemEl, task){
+  if (readOnly || e.button > 0) return;
+  e.preventDefault();
+  const r = itemEl.getBoundingClientRect();
+  const ph = el('div', 'placeholder'); ph.style.height = r.height + 'px';
+  itemEl.after(ph);
+  Object.assign(itemEl.style, { position:'fixed', left:r.left+'px', top:r.top+'px', width:r.width+'px', zIndex:50, pointerEvents:'none', margin:0 });
+  itemEl.classList.add('dragging');
+  document.body.classList.add('is-dragging');
+  drag = { itemEl, ph, task, offX: e.clientX - r.left, offY: e.clientY - r.top, y: e.clientY, x: e.clientX, raf: 0 };
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+  drag.raf = requestAnimationFrame(autoScroll);
+}
+function placeAt(x, y){
+  const under = document.elementFromPoint(x, y);
+  if (!under) return;
+  const over = under.closest('.item:not(.dragging)');
+  const target = under.closest('.day-items');
+  if (target && target.dataset.kind === 'overdue') return;
+  if (over) {
+    const r = over.getBoundingClientRect();
+    if (y < r.top + r.height/2) over.before(drag.ph); else over.after(drag.ph);
+    return;
+  }
+  const list = under.closest('.day-items');
+  if (list && drag.ph.parentElement !== list) {
+    list.insertBefore(drag.ph, list.querySelector('.add-task-row, .edit-form'));
+  }
+}
+function onDragMove(e){
+  drag.x = e.clientX; drag.y = e.clientY;
+  drag.itemEl.style.left = (e.clientX - drag.offX) + 'px';
+  drag.itemEl.style.top = (e.clientY - drag.offY) + 'px';
+  placeAt(e.clientX, e.clientY);
+}
+function autoScroll(){
+  if (!drag) return;
+  const edge = 70, h = window.innerHeight;
+  if (drag.y < edge) window.scrollBy(0, -Math.ceil((edge - drag.y) / 5));
+  else if (drag.y > h - edge) window.scrollBy(0, Math.ceil((drag.y - (h - edge)) / 5));
+  drag.raf = requestAnimationFrame(autoScroll);
+}
+function endDrag(){
+  window.removeEventListener('pointermove', onDragMove);
+  window.removeEventListener('pointerup', endDrag);
+  window.removeEventListener('pointercancel', endDrag);
+  cancelAnimationFrame(drag.raf);
+  document.body.classList.remove('is-dragging');
+  const { ph, task } = drag;
+  const list = ph.parentElement;
+  const kind = list && list.dataset.kind;
+  // Overdue is a view of past-due tasks, not a place you can drop into
+  if (kind && kind !== 'overdue') {
+    const value = list.dataset.value;
+    const key = (kind === 'day' || kind === 'noday') ? 'dayOrder' : 'order';
+    const sib = (node, dir) => { let n = node[dir]; while (n && !(n.classList.contains('item') && !n.classList.contains('dragging'))) n = n[dir]; return n; };
+    const find = n => n && tasks.find(t => t.id === n.dataset.taskId);
+    const prev = find(sib(ph, 'previousElementSibling')), next = find(sib(ph, 'nextElementSibling'));
+    const val = t => t[key] ?? t.order ?? 0;
+    let ord;
+    if (prev && next) ord = (val(prev) + val(next)) / 2;
+    else if (prev) ord = val(prev) + 1;
+    else if (next) ord = val(next) - 1;
+    else ord = 1;
+
+    const fields = { [key]: ord };
+    const wasDump = task.section === DUMP_ID;
+    if (kind === 'section') fields.section = value;
+    else if (kind === 'dump') { fields.section = DUMP_ID; if (!wasDump) fields.prevSection = task.section; }
+    else {
+      const newDay = kind === 'day' ? value : null;
+      if ((task.day || null) !== newDay) { fields.day = newDay; fields.originalDay = null; }
+      if (wasDump) fields.section = returnSection(task);
+    }
+    // A done task pulled back out of the Dumpster starts over
+    if (wasDump && fields.section && fields.section !== DUMP_ID && task.status === 'done') fields.status = 'not-started';
+    if (Object.keys(fields).some(k => task[k] !== fields[k])) patchTask(task, fields);
+  }
+  drag = null;
+  dirty = false;
+  render();
+}
+
+init();
+</script>
+
+</body>
+</html>
