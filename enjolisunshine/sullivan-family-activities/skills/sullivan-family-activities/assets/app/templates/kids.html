@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+{% if kid_id %}
+<section class="kid-app" id="kid-app"></section>
+{% else %}
+<section class="card kid-pick">
+  <h2>Who's playing? 👋</h2>
+  <p class="muted">Tap your picture to see your jobs, stars and prizes.</p>
+  <div class="kid-tiles" id="kid-tiles"></div>
+</section>
+{% endif %}
+{% endblock %}

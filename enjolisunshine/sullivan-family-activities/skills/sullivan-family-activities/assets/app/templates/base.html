@@ -1,0 +1,97 @@
+{% from "_icons.html" import icon, sun %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{{ page_title }} · Sullivan Family Activities</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <meta name="theme-color" content="#FFD9E6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Sullivan Family">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body data-page="{{ active }}"{% if kid_id %} data-kid="{{ kid_id }}" class="kid-mode"{% endif %}>
+<div class="app">
+  <aside class="sidebar">
+    <a class="brand-sun" href="/" aria-label="Sullivan Family Activities home">{{ sun() }}</a>
+    <nav class="nav" aria-label="Main">
+      {% for key, label, url, ic in nav %}
+      <a class="nav-link{% if key == active %} active{% endif %}" href="{{ url }}" title="{{ label }}"{% if key == active %} aria-current="page"{% endif %}>
+        {{ icon(ic) }}<span>{{ label }}</span>
+      </a>
+      {% endfor %}
+    </nav>
+    <div class="sidebar-art" aria-hidden="true">
+      <svg viewBox="0 0 220 190" preserveAspectRatio="xMidYMax slice">
+        <circle cx="168" cy="92" r="20" fill="#FFD9A0"/>
+        <rect x="0" y="128" width="220" height="40" fill="#A7DDF6"/>
+        <path d="M0 148 Q90 120 220 160 V190 H0Z" fill="#FFE6BF"/>
+        <path d="M0 170 Q110 150 220 182 V190 H0Z" fill="#FFC2D1" opacity=".55"/>
+        <path d="M46 158 Q52 110 76 70" stroke="#E9A661" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <g fill="#7FD8B6">
+          <ellipse cx="54" cy="66" rx="26" ry="7" transform="rotate(25 54 66)"/>
+          <ellipse cx="58" cy="54" rx="24" ry="7" transform="rotate(-25 58 54)"/>
+          <ellipse cx="82" cy="50" rx="7" ry="22" transform="rotate(15 82 50)"/>
+          <ellipse cx="98" cy="60" rx="26" ry="7" transform="rotate(20 98 60)"/>
+          <ellipse cx="96" cy="76" rx="24" ry="7" transform="rotate(45 96 76)"/>
+        </g>
+        <path d="M120 168 Q126 138 142 116" stroke="#E9A661" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <g fill="#9BE3C7">
+          <ellipse cx="130" cy="112" rx="18" ry="5" transform="rotate(25 130 112)"/>
+          <ellipse cx="146" cy="104" rx="5" ry="16" transform="rotate(15 146 104)"/>
+          <ellipse cx="157" cy="114" rx="18" ry="5" transform="rotate(25 157 114)"/>
+        </g>
+      </svg>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <h1 class="title"><span class="rainbow">Sullivan</span> Family Activities</h1>
+      <div class="search">
+        {{ icon('search') }}
+        <input id="search-input" type="search" placeholder="Search tasks, events, or notes…" autocomplete="off" aria-label="Search">
+        <div class="search-results" id="search-results" role="listbox"></div>
+      </div>
+      <button type="button" class="icon-btn top-btn" id="sound-toggle" aria-pressed="true" title="Sound on/off">{{ icon('volume') }}</button>
+      <button type="button" class="icon-btn top-btn" id="lock-btn" hidden title="Grown-up mode">{{ icon('lock') }}</button>
+      <div class="avatar-sf" title="Sullivan Family">SF</div>
+    </header>
+
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<dialog id="modal" class="modal"><form id="modal-form" novalidate></form></dialog>
+<dialog id="pin-modal" class="modal pin-modal" aria-labelledby="pin-title">
+  <div class="pin-box">
+    <span class="pin-lock">{{ icon('lock') }}</span>
+    <h3 id="pin-title">Grown-ups only</h3>
+    <p class="pin-sub" id="pin-sub">Enter the 4-digit parent PIN</p>
+    <div class="pin-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <p class="pin-err" id="pin-err" role="alert"></p>
+    <div class="pin-pad">
+      {% for n in [1,2,3,4,5,6,7,8,9] %}<button type="button" data-digit="{{ n }}">{{ n }}</button>{% endfor %}
+      <button type="button" data-pin-cancel class="pin-cancel">Cancel</button>
+      <button type="button" data-digit="0">0</button>
+      <button type="button" data-pin-back aria-label="Delete">⌫</button>
+    </div>
+  </div>
+</dialog>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<div id="celebrate" class="celebrate" role="status" aria-live="polite"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>window.ICONS = {{ ICONS | tojson }};</script>
+{% block scripts %}{% endblock %}
+<script src="/static/js/app.js"></script>
+</body>
+</html>
