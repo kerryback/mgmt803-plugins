@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-head">
+    <span class="head-ic c-pink">{{ icon('users') }}</span>
+    <h2>Family Members</h2>
+    <button class="btn primary sm" id="add-member" type="button">{{ icon('plus') }} Add member</button>
+  </div>
+  <p class="muted">Tap the 📷 on anyone's picture to add a profile photo. Each person also has their own color, and it follows them across the calendar and task lists.</p>
+  <div class="family-grid" id="family-grid"></div>
+</section>
+{% endblock %}

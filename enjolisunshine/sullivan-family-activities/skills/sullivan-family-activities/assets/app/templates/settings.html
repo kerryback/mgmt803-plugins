@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="settings">
+  <div class="card phone-card">
+    <div class="card-head"><span class="head-ic c-teal">{{ icon('smile') }}</span><h2>Use it on your phone 📱</h2></div>
+    <div class="phone-link" id="phone-link"><p class="muted">Finding this computer's address…</p></div>
+    <details class="phone-steps" open>
+      <summary>Put it on your home screen</summary>
+      <div class="steps-cols">
+        <div><b>📱 iPhone (Safari)</b>
+          <ol><li>Scan the code with the Camera app, or type the address into <b>Safari</b>.</li>
+          <li>Tap the <b>Share</b> button (square with an arrow).</li>
+          <li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li></ol></div>
+        <div><b>🤖 Android (Chrome)</b>
+          <ol><li>Scan the code, or type the address into <b>Chrome</b>.</li>
+          <li>Tap the <b>⋮</b> menu in the top corner.</li>
+          <li>Tap <b>Add to Home screen</b>, then <b>Add</b>.</li></ol></div>
+      </div>
+      <p class="hint">Your phone needs to be on the <b>same Wi-Fi</b> as this computer, and the app's black window must be open on the computer. If the page won't load on your phone, check the Windows "allow access" box for private networks (see the README).</p>
+    </details>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="head-ic c-purple">{{ icon('lock') }}</span><h2>Parent PIN</h2></div>
+    <p class="muted" id="pin-status">Checking…</p>
+    <div class="set-actions" id="pin-actions"></div>
+    <p class="hint">Forgot the PIN? Close the app, put an empty file named <b>RESET-PIN.txt</b> in the app's folder, then start the app again.</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="head-ic c-yellow">{{ icon('sparkles') }}</span><h2>Celebrations</h2></div>
+    <label class="switch-line"><input type="checkbox" id="set-sound"><span class="switch"></span> Play sounds when things get checked off</label>
+    <label class="switch-line"><input type="checkbox" id="set-confetti"><span class="switch"></span> Confetti bursts</label>
+    <button class="btn soft sm" id="test-celebrate" type="button">{{ icon('star') }} Try it!</button>
+  </div>
+  <div class="card danger-zone">
+    <div class="card-head"><span class="head-ic c-coral">{{ icon('trash') }}</span><h2>Start fresh</h2></div>
+    <p class="muted">Family members and the prize shop always stay.</p>
+    <div class="set-actions">
+      <button class="btn danger" data-clear="activities" type="button">Clear all events, tasks, chores &amp; upkeep</button>
+      <button class="btn danger" data-clear="rewards" type="button">Reset stars, badges &amp; prize history</button>
+    </div>
+  </div>
+</section>
+{% endblock %}
+

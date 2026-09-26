@@ -1,0 +1,8 @@
+{
+  "name": "sullivan-family-activities",
+  "description": "Scaffold a local family organizer web app: FastAPI + SQLite covering a shared calendar, tasks and chores (with point rewards and turn rotation), a prize shop, home maintenance, kid mode, and a phone-link QR code, with a PIN-protected settings area.",
+  "version": "0.1.0",
+  "author": {
+    "name": "enjolisunshine"
+  }
+}

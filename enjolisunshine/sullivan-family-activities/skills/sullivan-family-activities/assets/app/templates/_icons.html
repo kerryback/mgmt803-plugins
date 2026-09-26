@@ -1,0 +1,17 @@
+{% macro icon(name, cls="") -%}
+<svg class="ic {{ cls }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ ICONS[name] | safe }}</svg>
+{%- endmacro %}
+
+{% macro sun() -%}
+<svg viewBox="0 0 64 64" aria-hidden="true">
+  <g stroke="#FFB020" stroke-width="4" stroke-linecap="round">
+    <path d="M32 3v8M32 53v8M3 32h8M53 32h8M11.5 11.5l5.7 5.7M46.8 46.8l5.7 5.7M11.5 52.5l5.7-5.7M46.8 17.2l5.7-5.7"/>
+  </g>
+  <circle cx="32" cy="32" r="15" fill="#FFD23F"/>
+  <circle cx="26.5" cy="29.5" r="2" fill="#6B4A00"/>
+  <circle cx="37.5" cy="29.5" r="2" fill="#6B4A00"/>
+  <path d="M26.5 36q5.5 4.5 11 0" stroke="#6B4A00" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <circle cx="22.5" cy="35" r="2.4" fill="#FF8FB1" opacity=".65"/>
+  <circle cx="41.5" cy="35" r="2.4" fill="#FF8FB1" opacity=".65"/>
+</svg>
+{%- endmacro %}

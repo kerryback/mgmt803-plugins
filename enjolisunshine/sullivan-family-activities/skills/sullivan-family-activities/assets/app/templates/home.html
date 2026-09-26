@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="member-row" id="member-row" aria-label="Family members">
+  {% for i in range(5) %}<div class="member-card skeleton"></div>{% endfor %}
+</section>
+<section id="member-panel" class="member-panel card" hidden></section>
+
+<section class="home-grid">
+  <div class="card cal-card" id="home-cal"></div>
+
+  <div class="side-col">
+    <div class="card">
+      <div class="card-head">
+        <span class="head-ic c-blue">{{ icon('check') }}</span>
+        <h2>Today's Tasks</h2>
+        <a class="link" href="/tasks">View all</a>
+      </div>
+      <div class="chips" id="task-chips"></div>
+      <div class="dd-row" id="task-controls"></div>
+      <ul class="task-list" id="task-list"></ul>
+      <button class="btn soft block" id="add-task" type="button">{{ icon('plus') }} Add a task</button>
+    </div>
+
+    <div class="card sotw-card">
+      <div class="card-head">
+        <span class="head-ic c-yellow">{{ icon('trophy') }}</span>
+        <h2>Star of the Week</h2>
+        <a class="link" href="/rewards">Rewards</a>
+      </div>
+      <ol class="leader" id="leaderboard"></ol>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="head-ic c-purple">{{ icon('calendar') }}</span>
+        <h2>Upcoming Events</h2>
+        <a class="link" href="/calendar">View all</a>
+      </div>
+      <ul class="upcoming" id="upcoming"></ul>
+    </div>
+  </div>
+</section>
+
+<section class="quick-links" aria-label="More">
+  {% for key, label, sub, ic, color in quick_links %}
+  <a class="quick c-{{ color }}" href="/{{ key }}">
+    <span class="quick-ic">{{ icon(ic) }}</span>
+    <span class="quick-text"><b>{{ label }}</b><small>{{ sub }}</small></span>
+    {{ icon('chevron-right', 'chev') }}
+  </a>
+  {% endfor %}
+</section>
+{% endblock %}
