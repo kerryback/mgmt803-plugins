@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14243d">
+  <title>AI Flow Chart Explainer</title>
+  <style>
+    :root{color-scheme:light;--ink:#17263d;--muted:#4c607c;--navy:#14243d;--blue:#315d9c;--line:#d7e1ee;--paper:#f6f8fc;--white:#fff}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+    a{color:#195394}a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #e5a92b;outline-offset:3px}
+    header{background:var(--navy);color:#fff;padding:28px clamp(18px,4vw,64px)}
+    .top{max-width:1700px;margin:auto;display:flex;justify-content:space-between;gap:22px;align-items:center;flex-wrap:wrap}
+    .eyebrow{font-size:.76rem;letter-spacing:.13em;text-transform:uppercase;color:#a9c4ec;font-weight:750}
+    h1{font-size:clamp(1.8rem,3.2vw,3.2rem);line-height:1.12;margin:.35rem 0 .5rem}header p{color:#d3dff0;margin:0;max-width:760px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}.actions a{display:inline-block;padding:10px 15px;border:1px solid #91afd6;border-radius:9px;color:#fff;text-decoration:none;font-weight:650}
+    .actions a:hover{background:#294566}
+    main{max-width:1700px;margin:auto;padding:22px clamp(12px,3vw,48px) 50px}
+    .intro{margin:0 0 18px;color:var(--muted)}
+    .layout{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,.8fr);gap:18px;align-items:start}
+    .chart-card,.guide-card,.extra{background:var(--white);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px #1b35520a}
+    .card-heading{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .card-heading h2,.guide-card h2{font-size:1.1rem;margin:0}.card-heading span{color:var(--muted);font-size:.85rem}
+    .chart-scroll{overflow:auto;max-height:75vh}.chart-canvas{position:relative;width:max(100%,1120px);line-height:0}
+    .chart-canvas img{display:block;width:100%;height:auto}
+    .hotspot{position:absolute;border:2px solid transparent;border-radius:8px;background:transparent;cursor:pointer;transition:background .15s,border-color .15s}
+    .hotspot:hover,.hotspot[aria-pressed="true"]{border-color:#e5a92b;background:#e5a92b24}
+    .hotspot:focus-visible{outline:4px solid #e5a92b;outline-offset:0}
+    .chart-note{padding:10px 18px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+    .guide-card{position:sticky;top:14px;padding:20px}
+    .guide-kicker{font-size:.75rem;letter-spacing:.11em;text-transform:uppercase;font-weight:800;color:var(--blue)}
+    #topic-title{font-size:1.6rem;line-height:1.2;margin:7px 0 12px}
+    #topic-body{margin:0 0 15px} .fact{background:#eef4fc;border-left:4px solid #5684bd;padding:12px 14px;border-radius:0 8px 8px 0}
+    .fact b{display:block;margin-bottom:3px}.fact p{margin:0;color:#344b68}
+    .topic-list{display:flex;gap:7px;flex-wrap:wrap;margin-top:22px}
+    .topic-list button{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 10px;border-radius:999px;cursor:pointer;font:inherit;font-size:.82rem}
+    .topic-list button:hover,.topic-list button[aria-pressed="true"]{background:#e7f0fc;border-color:#6f9bcf}
+    .extra{margin-top:18px;padding:0 20px}.extra details{padding:17px 0}.extra details+details{border-top:1px solid var(--line)}
+    .extra summary{cursor:pointer;font-weight:750}.extra p{color:var(--muted);max-width:1100px;margin-bottom:0}
+    footer{margin-top:24px;color:var(--muted);font-size:.84rem}
+    @media(max-width:950px){.layout{grid-template-columns:1fr}.guide-card{position:static}.chart-scroll{max-height:60vh}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div><div class="eyebrow">Interactive diagram guide</div><h1>AI Flow Chart Explainer</h1><p>Explore how a goal moves through an agent, its instructions and tools, and the systems it can reach.</p></div>
+    <nav class="actions" aria-label="Original image">
+      <a href="/chart.png" target="_blank" rel="noopener">Open original PNG ↗</a>
+      <a href="/chart.png" download="AI Flow chart Tool.png">Download PNG</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <p class="intro">Select a highlighted box in the chart or a topic button beside it. Scroll the chart to explore the full image.</p>
+  <div class="layout">
+    <section class="chart-card" aria-label="Interactive AI flow chart">
+      <div class="card-heading"><h2>How the pieces connect</h2><span>Click a box to learn more</span></div>
+      <div class="chart-scroll">
+        <div class="chart-canvas" id="chart">
+          <img src="/chart.png" alt="Flow chart showing a user goal going to a main agent, powered by an AI model and informed by context. Skills guide the agent. The agent can delegate to a subagent and call local or connected tools. Plugins package skills and connections. Connectors expose external capabilities through APIs. The agent combines work into a result for the user.">
+        </div>
+      </div>
+      <div class="chart-note">Solid arrows show work and actions. Dashed arrows show guidance, support, or packaging.</div>
+    </section>
+    <aside class="guide-card" aria-live="polite">
+      <div class="guide-kicker">Selected part</div>
+      <h2 id="topic-title">Main agent</h2>
+      <p id="topic-body"></p>
+      <div class="fact"><b>How it connects</b><p id="topic-link"></p></div>
+      <div class="topic-list" id="topics" aria-label="Chart topics"></div>
+    </aside>
+  </div>
+  <section class="extra" aria-label="More about the chart">
+    <details><summary>How should I read the arrows?</summary><p>Solid arrows represent goals, delegation, tool calls, requests, returned work, and the final result. Dashed arrows represent support relationships: the model powers the agent, context informs it, skills guide it, and a plugin can package skills and connections. The chart is a conceptual map rather than a strict execution sequence.</p></details>
+    <details><summary>Can you give me a concrete example?</summary><p>Suppose you ask for a summary of a spreadsheet. The main agent uses the model to interpret your request and your project instructions for context. A spreadsheet skill may tell it how to check the data. It calls a local file tool or a connected Sheets tool, may delegate a focused check to a subagent, then combines the findings into an answer. If it uses a connected Sheets tool, a connector may pass requests to an API that reaches the spreadsheet service.</p></details>
+    <details><summary>What does this simplified map leave out?</summary><p>Products differ in which skills, tools, plugins, and subagents they support. A subagent may have its own model, context, and skills. Access to files or external systems depends on the permissions and authentication available in that environment.</p></details>
+  </section>
+  <footer>Based on the included source image “AI Flow chart Tool.png”. The labels and relationships here explain that diagram; exact behavior depends on the agent product and its permissions.</footer>
+</main>
+<script>
+const items = [
+  {id:"model",name:"AI model",box:[8.2,10,22.5,7.7],body:"The language and reasoning engine that helps an agent interpret a request, plan, and produce text or code. The model itself does not directly read files or update services.",link:"The model powers the main agent. The agent uses tools when an action outside the conversation is needed."},
+  {id:"you",name:"You",box:[38.8,10,22.5,7],body:"You set the goal and decide what outcome you want. A clear request can include the audience, constraints, source files, and desired format.",link:"Your goal goes to the main agent; the result returns to you."},
+  {id:"context",name:"Context and instructions",box:[69.4,10,22.5,7.7],body:"Conversation history, supplied files, and project rules tell the agent what matters for this task and how it should work.",link:"Context informs the main agent. It can change how the agent interprets the same goal."},
+  {id:"skills",name:"Skills",box:[8.2,23.4,22.5,8.3],body:"Reusable procedures, templates, and scripts for a kind of work. A skill can describe steps, quality checks, and tools to use.",link:"Skills guide the agent. A skill is guidance; the agent still performs the work and calls tools."},
+  {id:"agent",name:"Main agent",box:[38.8,23.4,22.5,8.3],body:"The main worker for your request. It plans, chooses relevant instructions, calls tools, may delegate focused work, and combines results.",link:"It receives your goal, model support, context, and skill guidance, then produces the result for you."},
+  {id:"subagent",name:"Subagent",box:[69.4,23.4,22.5,8.3],body:"Another agent given a focused assignment by the main agent, such as checking a calculation or researching one part of a task.",link:"The main agent delegates to it. It returns work to the main agent and may call tools if permitted."},
+  {id:"tools",name:"Tools",box:[38.8,37.8,22.5,7.7],body:"Specific actions an agent can request, such as reading a file, running code, searching, or updating a record.",link:"The main agent calls tools. A subagent may also call tools when its environment allows it."},
+  {id:"local",name:"Local tools",box:[8.2,48.9,22.5,7.8],body:"Tools that act on the local environment, such as reading files, running code, or controlling a browser.",link:"They are one type of tool available to an agent. A local tool can also read a skill's supporting files."},
+  {id:"connected",name:"Connected tools",box:[59.3,48.9,23.7,7.8],body:"Tools that interact with an external service, such as Drive or a database, through an authorized connection.",link:"They are another type of tool. A connector often exposes the service's capabilities to the agent."},
+  {id:"plugin",name:"Plugin",box:[7.1,61.3,25.8,7.7],body:"An installable bundle that can package skills, connections, and other resources for a particular workflow.",link:"A plugin can include skills and may include a connection. Installing one does not by itself grant access to every external service."},
+  {id:"connector",name:"MCP server or connector",box:[59.3,61.3,23.7,7.7],body:"A bridge that exposes external capabilities as tools an agent can discover and call. MCP is one protocol used for this.",link:"A connected tool may be provided through a connector, which often calls an API."},
+  {id:"api",name:"API",box:[59.3,73.7,23.7,7],body:"A defined interface for software requests and responses. It specifies what a service accepts and returns.",link:"A connector often calls an API to reach an external system."},
+  {id:"result",name:"Result for you",box:[14.1,80.9,26,8.1],body:"The answer, document, code, or completed action delivered after the main agent combines its own work and any tool or subagent results.",link:"The main agent combines work into this outcome and presents it to you."},
+  {id:"external",name:"External systems",box:[59.3,85.4,23.7,6.9],body:"The apps, databases, and services outside the local agent environment where data may be read or changed.",link:"An API carries requests and results between the connector and an external system, subject to authorization."}
+];
+const chart=document.getElementById("chart"), topics=document.getElementById("topics");
+for(const item of items){
+  const spot=document.createElement("button");
+  spot.type="button"; spot.className="hotspot"; spot.dataset.topic=item.id;
+  spot.setAttribute("aria-label","Explain "+item.name); spot.title="Explain "+item.name;
+  spot.style.left=item.box[0]+"%";spot.style.top=item.box[1]+"%";spot.style.width=item.box[2]+"%";spot.style.height=item.box[3]+"%";
+  spot.addEventListener("click",()=>select(item.id));chart.appendChild(spot);
+  const chip=document.createElement("button");chip.type="button";chip.textContent=item.name;chip.dataset.topic=item.id;
+  chip.addEventListener("click",()=>select(item.id));topics.appendChild(chip);
+}
+function select(id){
+  const item=items.find(x=>x.id===id)||items.find(x=>x.id==="agent");
+  document.getElementById("topic-title").textContent=item.name;
+  document.getElementById("topic-body").textContent=item.body;
+  document.getElementById("topic-link").textContent=item.link;
+  document.querySelectorAll("[data-topic]").forEach(el=>el.setAttribute("aria-pressed",String(el.dataset.topic===item.id)));
+  if(location.hash!=="#"+item.id)history.replaceState(null,"","#"+item.id);
+}
+select(location.hash.slice(1));
+window.addEventListener("hashchange",()=>select(location.hash.slice(1)));
+</script>
+</body>
+</html>

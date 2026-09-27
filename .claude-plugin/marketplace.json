@@ -6,6 +6,11 @@
   "description": "Plugins built by the MGMT 803 class at Rice Business, plus the instructor's own. Scheduling and planning agents, market-data briefs, a job scout, teaching tools, app scaffolds, and a handful of browser games.",
   "plugins": [
     {
+      "name": "ai-flow-chart-explainer",
+      "source": "./kerryback/ai-flow-chart-explainer",
+      "description": "Launch a local interactive guide to how agents, skills, tools, plugins, connectors, APIs, and external systems connect. Click chart regions for explanations and open or download the original PNG."
+    },
+    {
       "name": "calendar-keeper",
       "source": "./bb151-pixel/calendar-keeper",
       "description": "Plan your week and edit Google Calendar across several calendars (work, school, a side job, personal) from rules you set once in a private profile on your computer. Keeps anything that isn't work off the work calendar, including the attendee trap that copies events onto your primary calendar; plans around work hours the calendar doesn't show; protects rest; proposes before editing; and checks its edits afterwards."

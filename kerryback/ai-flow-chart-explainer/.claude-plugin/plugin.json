@@ -1,0 +1,8 @@
+{
+  "name": "ai-flow-chart-explainer",
+  "description": "Launch a local interactive explainer for the included AI flow chart. Click diagram regions to learn how agents, skills, tools, plugins, connectors, APIs, and external systems relate; open or download the original PNG.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Kerry Back"
+  }
+}

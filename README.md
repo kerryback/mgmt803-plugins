@@ -1,6 +1,6 @@
 # mgmt803-plugins
 
-A Claude Code plugin marketplace for MGMT 803 at Rice Business. Twenty-three
+A Claude Code plugin marketplace for MGMT 803 at Rice Business. Twenty-six
 plugins: scheduling and planning agents, market-data briefs, a job scout,
 teaching tools, app scaffolds, and a handful of browser games — most of them
 built by the class.
@@ -50,6 +50,7 @@ restarts.
 | `shoji@mgmt803` | Kerry Back | A Quarto reveal.js slide theme in plum, pale gray and dusty blue, set small enough for text- and code-heavy decks. |
 | `voiceover@mgmt803` | Kerry Back | Turns a slide PDF into a narrated MP4 plus a transcript, with a local app for editing the script and picking a voice. Needs an ElevenLabs API key. |
 | `sn-lab@mgmt803` | Douglas Chesson | Animates SN1 and SN2 nucleophilic substitution. Pick a substrate, nucleophile and solvent from a curated textbook set; it predicts which mechanism dominates, explains why, and animates it beside a reaction-energy diagram. No dependencies. |
+| `ai-flow-chart-explainer@mgmt803` | Kerry Back | A local interactive guide to how agents, skills, tools, plugins, connectors, APIs, and external systems connect. Click chart regions for explanations; open or download the original PNG. |
 | `math-atelier@mgmt803` | Jennifer Lane | A self-contained page for math practice. One HTML file, nothing to install. |
 | `piano-transcriber@mgmt803` | Caitlin Lorenz | Turns a song — a link, a search query, or an uploaded file — into piano sheet music at easy/medium/hard difficulty, with in-browser playback and a labeled PDF download. Runs entirely locally; no API key needed. |
 
