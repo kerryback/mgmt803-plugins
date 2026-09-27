@@ -25,6 +25,8 @@ file locally or publish you a synced copy, whichever you want.
 - **Tags:** Work, School, Life and Hard Deadline are built in. Add your own with **+ Tag** in the key, or with **+ New tag** while editing a task. New tags get their own color automatically.
 - **Done Dumpster:** **Move N done to Dumpster** clears finished tasks out of the way, and they still count toward your progress. **Empty dumpster** deletes them for good. A done task dragged back out of the Dumpster resets to not started.
 - **Past days** in the Days view start collapsed, so the week in front of you stays front and center.
+- **This week's progress:** the bar at the top tracks tasks scheduled Monday to Sunday of the current week. Done tasks fill it in purple, with in-progress tasks right after them in amber.
+- **Stats:** a third tab next to Sections and Days. It shows your current task counts, what's overdue right now, and last week next to this week: tasks planned, done, done on time, overdue %, not due yet and moved to a later day. It also breaks this week down day by day and shows your open tasks by tag and by section. Finish dates are recorded when you check a task off, so on-time and overdue figures reflect when you actually finished.
 
 ## Option 1: Just open it (no setup)
 

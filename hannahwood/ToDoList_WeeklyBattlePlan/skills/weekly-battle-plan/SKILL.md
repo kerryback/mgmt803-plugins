@@ -64,9 +64,9 @@ user's tasks are in the database, not the page, so they survive.
 
 Only what they'll otherwise miss; the page is self-explanatory once open.
 
-- **Sections / Days** toggle at the top shows the same tasks two ways. Every task
-  has a section, and optionally a day. Check one off in either view and it's off in
-  both.
+- **Sections / Days / Stats** toggle at the top. Sections and Days show the same
+  tasks two ways. Every task has a section, and optionally a day. Check one off in
+  either view and it's off in both.
 - **Checkboxes have three states**: not started, in progress, done, back to the
   start.
 - **Drag the ⠿ handle** to reorder, or to move a task to another section or day.
@@ -80,6 +80,11 @@ Only what they'll otherwise miss; the page is self-explanatory once open.
 - **Done Dumpster**: "Move N done to Dumpster" clears finished tasks aside while
   still counting them toward progress; "Empty dumpster" deletes them. A done task
   dragged back out resets to not started.
+- **This week's progress** bar at the top counts tasks scheduled for the current
+  Monday to Sunday: done in purple, in progress in amber right after it.
+- **Stats** tab: current task counts, overdue right now, last week vs. this week
+  (planned, done, done on time, overdue %, not due yet, moved later), a day-by-day
+  view of this week, and open tasks by tag and section.
 
 ## Notes
 

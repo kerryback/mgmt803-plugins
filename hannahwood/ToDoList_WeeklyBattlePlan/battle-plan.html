@@ -253,6 +253,46 @@
   }
   @media (min-width:561px){ .edit-form select, .edit-form input[type="date"]{font-size:.82rem;} }
   .quick-days{display:flex;gap:4px;flex-wrap:wrap;}
+
+  /* ---- progress card ---- */
+  .progress-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .progress-head .range{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .progress-card .stat .pct{font-size:.8rem;color:var(--muted);font-weight:500;margin-left:8px;}
+  .progress-foot{font-size:.7rem;color:var(--muted);margin-top:6px;}
+  .progress-card .bar{display:flex;}
+  .progress-card .bar-ip{background:var(--amber);}
+  .progress-card .bar-fill + .bar-ip{margin-left:0;}
+  .ip-note{display:inline-flex;align-items:center;gap:5px;}
+  .ip-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);}
+
+  /* ---- stats view ---- */
+  .stats-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px;}
+  .tile{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 14px;}
+  .tile-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .tile-num{font-size:1.6rem;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px;}
+  .tile-sub{font-size:.72rem;color:var(--muted);margin-top:2px;}
+  .tile.is-late .tile-num{color:var(--urgent);}
+  .stats-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;min-width:0;}
+  .stats-card-head{margin-bottom:10px;}
+  .stats-card h2{font-size:1rem;margin:0;font-weight:600;}
+  .stats-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 14px;}
+  .table-wrap{overflow-x:auto;}
+  .cmp{width:100%;border-collapse:collapse;font-size:.84rem;font-variant-numeric:tabular-nums;}
+  .cmp th,.cmp td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;}
+  .cmp th:first-child{text-align:left;font-weight:500;color:var(--muted);}
+  .cmp thead th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;border-bottom:none;padding-bottom:0;}
+  .cmp .cmp-dates td{font-size:.7rem;color:var(--muted);padding-top:2px;}
+  .cmp tbody tr:last-child th,.cmp tbody tr:last-child td{border-bottom:none;}
+  .cmp .row-key th{color:var(--text);font-weight:600;}
+  .cmp .row-key td{font-weight:600;}
+  .meter-row{display:grid;grid-template-columns:minmax(80px,9em) 1fr 3.5em;align-items:center;gap:10px;padding:4px 0;font-size:.8rem;}
+  .meter-label{display:flex;align-items:center;gap:6px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .meter-label .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .meter-track{height:8px;border-radius:4px;background:var(--panel3);overflow:hidden;min-width:4px;}
+  .meter-fill{height:100%;background:var(--accent);border-radius:4px;}
+  .meter-value{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .meter-row.is-today .meter-label{color:var(--accent);font-weight:600;}
+  .stats-note{font-size:.72rem;color:var(--muted);max-width:65ch;margin:4px 0 0;}
 </style>
 </head>
 <body>
@@ -449,7 +489,7 @@ function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.c
 // Sections view groups by section; Days view groups by day. Same task either way.
 const VIEW_KEY = 'battlePlan_synced_view';
 let view = 'sections';
-try { if (localStorage.getItem(VIEW_KEY) === 'days') view = 'days'; } catch(e) {}
+try { const v = localStorage.getItem(VIEW_KEY); if (v === 'days' || v === 'stats') view = v; } catch(e) {}
 let weekOffset = 0;
 const pastOpen = new Set(); // past days opened during this visit
 
@@ -603,7 +643,7 @@ function renderTaskForm(ctx, item){
         fields.section = secVal; fields.order = endOrder(secVal);
         if (secVal === DUMP_ID) fields.prevSection = item.section;
       }
-      if (dayVal !== (item.day || null)) { fields.day = dayVal; fields.dayOrder = endDayOrder(dayVal); fields.originalDay = null; }
+      if (dayVal !== (item.day || null)) { Object.assign(fields, dayFields(item, dayVal)); fields.dayOrder = endDayOrder(dayVal); }
       patchTask(item, fields);
     }
     closeEdit();
@@ -633,6 +673,159 @@ function moveNoDayToToday(){
   let next = endDayOrder(today);
   list.forEach(t => patchTask(t, { day: today, dayOrder: next++ }));
   render();
+}
+
+// ---------- status & day changes ----------
+// doneAt records the day a task was finished, so Stats can tell on-time from late
+function statusFields(status){ return { status, doneAt: status === 'done' ? todayStr() : null }; }
+// Rescheduling an overdue task remembers the day it was first planned for
+function dayFields(task, newDay){
+  const old = task.day || null;
+  const slipping = old && old < todayStr() && task.status !== 'done';
+  const keep = task.originalDay && newDay && newDay > task.originalDay;
+  return { day: newDay, originalDay: slipping ? (task.originalDay || old) : keep ? task.originalDay : null };
+}
+
+// ---------- stats ----------
+function plannedDay(t){ return t.originalDay || t.day || null; }
+function onTime(t){
+  if (t.status !== 'done') return false;
+  const p = plannedDay(t);
+  if (!p) return true;
+  if (t.doneAt) return t.doneAt <= p;
+  return !t.originalDay || t.originalDay === t.day; // finished before completion dates were tracked
+}
+// A week's tasks are the ones first planned for one of its days (so rolled-over tasks stay with their original week)
+function weekStats(dates, today){
+  const set = new Set(dates);
+  const list = tasks.filter(t => set.has(plannedDay(t)));
+  const due = list.filter(t => plannedDay(t) < today);
+  return {
+    planned: list.length,
+    done: list.filter(t => t.status === 'done').length,
+    onTime: list.filter(onTime).length,
+    due: due.length,
+    late: due.filter(t => !onTime(t)).length,
+    open: due.filter(t => t.status !== 'done').length,
+    moved: list.filter(t => t.originalDay && t.originalDay !== t.day).length,
+  };
+}
+function pctText(n, d){ return d ? Math.round(n / d * 100) + '%' : '—'; }
+
+function statCard(title, sub){
+  const c = el('section', 'stats-card');
+  const h = el('div', 'stats-card-head');
+  h.appendChild(el('h2', null, title));
+  if (sub) h.appendChild(el('div', 'day-note', sub));
+  c.appendChild(h);
+  return c;
+}
+function meterRow(label, value, max, valueText, color, tip, extraCls){
+  const r = el('div', 'meter-row' + (extraCls ? ' ' + extraCls : ''));
+  r.title = tip;
+  const lab = el('div', 'meter-label');
+  if (color) { const d = el('span', 'dot'); d.style.background = color; lab.appendChild(d); }
+  lab.append(label);
+  const track = el('div', 'meter-track');
+  const f = el('div', 'meter-fill'); f.style.width = (max ? value / max * 100 : 0) + '%';
+  if (color) f.style.background = color;
+  track.appendChild(f);
+  r.append(lab, track, el('div', 'meter-value', valueText));
+  return r;
+}
+
+function renderStats(board){
+  const today = todayStr();
+  const live = tasks.filter(t => t.section !== DUMP_ID);
+  const open = live.filter(t => t.status !== 'done');
+
+  // Headline tiles
+  const tiles = el('div', 'stats-tiles');
+  const tile = (num, label, sub, cls) => {
+    const t = el('div', 'tile' + (cls ? ' ' + cls : ''));
+    t.append(el('div', 'tile-label', label), el('div', 'tile-num', String(num)));
+    if (sub) t.appendChild(el('div', 'tile-sub', sub));
+    tiles.appendChild(t);
+  };
+  const ns = live.filter(t => t.status === 'not-started').length;
+  const ip = live.filter(t => t.status === 'in-progress').length;
+  const dn = live.filter(t => t.status === 'done').length;
+  tile(live.length, 'Current tasks', ns + ' not started · ' + ip + ' in progress · ' + dn + ' done');
+  const overdueNow = live.filter(t => isOverdue(t, today)).length;
+  tile(overdueNow, 'Overdue right now', overdueNow ? 'Open tasks whose day has passed' : 'Nothing is late', overdueNow ? 'is-late' : '');
+  tile(live.filter(t => !t.day && t.status !== 'done').length, 'No day yet', 'Open tasks without a day');
+  tile(tasks.filter(t => t.section === DUMP_ID).length, 'In the Dumpster', 'Finished and tidied away');
+  board.appendChild(tiles);
+
+  // Last week vs this week
+  const lastDates = weekDates(-1), thisDates = weekDates(0);
+  const L = weekStats(lastDates, today), T = weekStats(thisDates, today);
+  const cmp = statCard('Last week vs. this week', 'Tasks count toward the week they were first planned for, even if they were moved later.');
+  const wrap = el('div', 'table-wrap');
+  const table = el('table', 'cmp');
+  const thead = el('thead'); const hr = el('tr');
+  hr.append(el('th', null, ''), el('th', null, 'Last week'), el('th', null, 'This week so far'));
+  const sub = el('tr', 'cmp-dates');
+  sub.append(el('td', null, ''), el('td', null, weekLabel(lastDates)), el('td', null, weekLabel(thisDates)));
+  thead.append(hr, sub); table.appendChild(thead);
+  const tbody = el('tbody');
+  const rowOf = (label, a, b, cls, tip) => {
+    const tr = el('tr', cls || null); if (tip) tr.title = tip;
+    tr.append(el('th', null, label), el('td', null, a), el('td', null, b));
+    tbody.appendChild(tr);
+  };
+  const both = f => [f(L), f(T)];
+  rowOf('Tasks planned', ...both(s => String(s.planned)));
+  rowOf('Done', ...both(s => s.done + ' (' + pctText(s.done, s.planned) + ')'));
+  rowOf('Done on time', ...both(s => s.onTime + ' (' + pctText(s.onTime, s.planned) + ')'));
+  rowOf('Overdue', ...both(s => s.planned ? pctText(s.late, s.planned) + ' (' + s.late + ' of ' + s.planned + ')' : '—'), 'row-key',
+        'Of all the tasks planned that week, the share whose day passed before they were finished.');
+  rowOf('Not due yet', ...both(s => String(s.planned - s.due)), null, 'Tasks planned for today or a later day, so they can\'t be late yet.');
+  rowOf('Still open from past days', ...both(s => String(s.open)));
+  rowOf('Moved to a later day', ...both(s => String(s.moved)));
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  cmp.appendChild(wrap);
+  board.appendChild(cmp);
+
+  // This week, day by day (by the day each task is scheduled for now)
+  const days = statCard('This week by day', 'Done out of scheduled, for each day.');
+  const perDay = thisDates.map(d => {
+    const list = tasks.filter(t => t.day === d);
+    return { d, total: list.length, done: list.filter(t => t.status === 'done').length };
+  });
+  const maxDay = Math.max(1, ...perDay.map(p => p.total));
+  perDay.forEach(p => {
+    const label = fmtShort(p.d) + (p.d === today ? ' · today' : '');
+    const r = meterRow(label, p.done, maxDay, p.done + '/' + p.total, null,
+      fmtLong(p.d) + ': ' + p.done + ' of ' + p.total + ' done', p.d === today ? 'is-today' : '');
+    // Track length shows scheduled tasks; the fill shows how many are done
+    r.querySelector('.meter-track').style.width = (p.total / maxDay * 100) + '%';
+    r.querySelector('.meter-fill').style.width = (p.total ? p.done / p.total * 100 : 0) + '%';
+    days.appendChild(r);
+  });
+  board.appendChild(days);
+
+  // Open work by tag and by section
+  const pair = el('div', 'stats-pair');
+  const byTag = statCard('Open tasks by tag', 'A task with two tags counts under both.');
+  const tagRows = allTags().map(def => ({ def, n: open.filter(t => t.tags.includes(def.id)).length }))
+    .concat([{ def: { label: 'No tag', color: 'var(--muted)' }, n: open.filter(t => !t.tags.some(tagDef)).length }])
+    .filter(r => r.n > 0).sort((a, b) => b.n - a.n);
+  const maxTag = Math.max(1, ...tagRows.map(r => r.n));
+  if (!tagRows.length) byTag.appendChild(el('div', 'empty-day', 'No open tasks.'));
+  tagRows.forEach(r => byTag.appendChild(meterRow(r.def.label, r.n, maxTag, String(r.n), r.def.color, r.def.label + ': ' + r.n + ' open')));
+  const bySec = statCard('Open tasks by section', null);
+  const secRows = regularSections().map(s => ({ s, n: open.filter(t => t.section === s.id).length })).filter(r => r.n > 0);
+  const maxSec = Math.max(1, ...secRows.map(r => r.n));
+  if (!secRows.length) bySec.appendChild(el('div', 'empty-day', 'No open tasks.'));
+  secRows.forEach(r => bySec.appendChild(meterRow(r.s.title, r.n, maxSec, String(r.n), null, r.s.title + ': ' + r.n + ' open')));
+  pair.append(byTag, bySec);
+  board.appendChild(pair);
+
+  board.appendChild(el('p', 'stats-note',
+    'A task is on time if it was finished on or before the day it was first planned for. Finish dates are recorded when you check a task off; ' +
+    'tasks finished before this feature existed count as on time unless they were moved to a later day.'));
 }
 
 // ---------- groups ----------
@@ -675,7 +868,7 @@ function renderViewBar(){
   const bar = document.getElementById('viewBar');
   bar.innerHTML = '';
   const seg = el('div', 'seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'View');
-  [['sections', 'Sections'], ['days', 'Days']].forEach(([v, label]) => {
+  [['sections', 'Sections'], ['days', 'Days'], ['stats', 'Stats']].forEach(([v, label]) => {
     const b = el('button', null, label);
     b.setAttribute('aria-pressed', String(view === v));
     b.addEventListener('click', () => { if (view !== v) setView(v); });
@@ -712,7 +905,7 @@ function renderItem(item, g){
   box.addEventListener('click', e => {
     e.stopPropagation();
     if (readOnly) return;
-    patchTask(item, { status: cycleStatus(item.status) });
+    patchTask(item, statusFields(cycleStatus(item.status)));
     render();
   });
 
@@ -871,18 +1064,43 @@ function render(){
     return;
   }
 
-  const groups = view === 'days' ? dayGroups() : sectionGroups();
-  groups.forEach(g => board.appendChild(g.kind === 'addsec' ? renderAddSection() : renderGroup(g)));
+  if (view === 'stats') renderStats(board);
+  else {
+    const groups = view === 'days' ? dayGroups() : sectionGroups();
+    groups.forEach(g => board.appendChild(g.kind === 'addsec' ? renderAddSection() : renderGroup(g)));
+  }
 
-  // Every task counts, Dumpster included, so progress doesn't drop when you tidy up
-  const total = tasks.length;
-  const doneAll = tasks.filter(t => t.status === 'done').length;
+  // This week's progress: tasks scheduled Mon–Sun of the current week, Dumpster included
+  const wk = weekDates(0);
+  const inWeek = tasks.filter(t => t.day && t.day >= wk[0] && t.day <= wk[6]);
+  const total = inWeek.length;
+  const doneAll = inWeek.filter(t => t.status === 'done').length;
   const pct = total ? (doneAll / total * 100) : 0;
   const movable = tasks.filter(t => t.status === 'done' && t.section !== DUMP_ID).length;
   const row = document.getElementById('progressRow');
-  row.innerHTML =
-    '<div class="progress-card"><div class="label">Total Progress</div><div class="stat">' + doneAll + '/' + total +
-    '</div><div class="bar"><div class="bar-fill" style="width:' + pct + '%"></div></div></div>';
+  row.innerHTML = '';
+  const card = el('div', 'progress-card');
+  const head = el('div', 'progress-head');
+  head.append(el('span', 'label', "This week's progress"), el('span', 'range', weekLabel(wk)));
+  const inProg = inWeek.filter(t => t.status === 'in-progress').length;
+  const stat = el('div', 'stat', doneAll + '/' + total);
+  if (total) stat.appendChild(el('span', 'pct', Math.round(pct) + '% done'));
+  if (inProg) {
+    const ip = el('span', 'pct ip-note');
+    ip.append(el('span', 'ip-dot'), inProg + ' in progress');
+    stat.appendChild(ip);
+  }
+  // Done fills first, then in-progress right after it on the same bar
+  const bar = el('div', 'bar'); bar.setAttribute('role', 'progressbar');
+  bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(total)); bar.setAttribute('aria-valuenow', String(doneAll));
+  bar.setAttribute('aria-valuetext', doneAll + ' of ' + total + ' done, ' + inProg + ' in progress');
+  const fill = el('div', 'bar-fill'); fill.style.width = pct + '%';
+  const ipFill = el('div', 'bar-fill bar-ip'); ipFill.style.width = (total ? inProg / total * 100 : 0) + '%';
+  bar.append(fill, ipFill);
+  card.append(head, stat, bar);
+  const unsched = tasks.filter(t => !t.day && t.section !== DUMP_ID && t.status !== 'done').length;
+  if (unsched) card.appendChild(el('div', 'progress-foot', unsched + ' open ' + (unsched === 1 ? 'task has' : 'tasks have') + ' no day yet and ' + (unsched === 1 ? "isn't" : "aren't") + ' counted here.'));
+  row.appendChild(card);
   const keyActions = document.getElementById('keyActions');
   keyActions.innerHTML = '';
   if (!readOnly) {
@@ -1106,11 +1324,11 @@ function endDrag(){
     else if (kind === 'dump') { fields.section = DUMP_ID; if (!wasDump) fields.prevSection = task.section; }
     else {
       const newDay = kind === 'day' ? value : null;
-      if ((task.day || null) !== newDay) { fields.day = newDay; fields.originalDay = null; }
+      if ((task.day || null) !== newDay) Object.assign(fields, dayFields(task, newDay));
       if (wasDump) fields.section = returnSection(task);
     }
     // A done task pulled back out of the Dumpster starts over
-    if (wasDump && fields.section && fields.section !== DUMP_ID && task.status === 'done') fields.status = 'not-started';
+    if (wasDump && fields.section && fields.section !== DUMP_ID && task.status === 'done') Object.assign(fields, statusFields('not-started'));
     if (Object.keys(fields).some(k => task[k] !== fields[k])) patchTask(task, fields);
   }
   drag = null;
