@@ -738,16 +738,24 @@ function showScores() {
   document.getElementById("best").textContent = best;
 }
 
+const TITLE_FONT = "700 26px ui-monospace, Consolas, monospace";
+const SUB_FONT = "16px ui-monospace, Consolas, monospace";
+
 function overlay(title, sub) {
+  // size the panel to whichever line is wider, with a little padding either side
+  ctx.font = TITLE_FONT;
+  let textW = ctx.measureText(title).width;
+  if (sub) { ctx.font = SUB_FONT; textW = Math.max(textW, ctx.measureText(sub).width); }
+  const panelW = Math.min(W - 40, Math.ceil(textW) + 48);
   ctx.fillStyle = pal.panel;
-  ctx.fillRect(W / 2 - 200, H / 2 - 72, 400, sub ? 84 : 56);
+  ctx.fillRect(W / 2 - panelW / 2, H / 2 - 72, panelW, sub ? 84 : 56);
   ctx.textAlign = "center";
   ctx.fillStyle = pal.text;
-  ctx.font = "700 26px ui-monospace, Consolas, monospace";
+  ctx.font = TITLE_FONT;
   ctx.fillText(title, W / 2, H / 2 - 34);
   if (sub) {
     ctx.fillStyle = pal.muted;
-    ctx.font = "16px ui-monospace, Consolas, monospace";
+    ctx.font = SUB_FONT;
     ctx.fillText(sub, W / 2, H / 2 - 4);
   }
 }
@@ -770,8 +778,8 @@ function draw(t) {
   drawEffects();
   drawMultiplier();
 
-  if (state === "ready") overlay("Press Space to start", "Jump rocks, duck birds, eat berries");
-  else if (state === "over") overlay(deathBy === "bird" ? "Nom! Game over" : "Bonk! Game over", "Press Space to try again");
+  if (state === "ready") overlay("Tap or press Space to start", "Jump rocks, duck birds, eat berries");
+  else if (state === "over") overlay(deathBy === "bird" ? "Nom! Game over" : "Bonk! Game over", "Tap or press Space to try again");
 }
 
 function loop(t) {
