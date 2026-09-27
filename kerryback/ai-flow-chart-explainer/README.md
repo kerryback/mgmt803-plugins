@@ -11,7 +11,7 @@ py -m pip install -r requirements.txt
 py app.py
 ```
 
-Open http://127.0.0.1:8008. If Python is installed as `python` rather than `py`, use `python` in those commands.
+Open http://127.0.0.1:8008. You can also open `index.html` directly from this folder without starting the server. If Python is installed as `python` rather than `py`, use `python` in those commands.
 
 The app runs locally and uses no API key. Use **Open original PNG** in the header to see the source image alone, or **Download PNG** to save it.
 

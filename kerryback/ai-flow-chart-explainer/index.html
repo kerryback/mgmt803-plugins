@@ -18,10 +18,10 @@
     main{max-width:1700px;margin:auto;padding:22px clamp(12px,3vw,48px) 50px}
     .intro{margin:0 0 18px;color:var(--muted)}
     .layout{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(300px,.8fr);gap:18px;align-items:start}
-    .chart-card,.guide-card,.extra{background:var(--white);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px #1b35520a}
-    .card-heading{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .chart-card,.guide-card,.extra{min-width:0;background:var(--white);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px #1b35520a}
+    .card-heading{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
     .card-heading h2,.guide-card h2{font-size:1.1rem;margin:0}.card-heading span{color:var(--muted);font-size:.85rem}
-    .chart-scroll{overflow:auto;max-height:75vh}.chart-canvas{position:relative;width:max(100%,1120px);line-height:0}
+    .chart-scroll{max-width:100%;overflow-x:auto}.chart-canvas{position:relative;width:max(100%,960px);line-height:0}
     .chart-canvas img{display:block;width:100%;height:auto}
     .hotspot{position:absolute;border:2px solid transparent;border-radius:8px;background:transparent;cursor:pointer;transition:background .15s,border-color .15s}
     .hotspot:hover,.hotspot[aria-pressed="true"]{border-color:#e5a92b;background:#e5a92b24}
@@ -38,7 +38,7 @@
     .extra{margin-top:18px;padding:0 20px}.extra details{padding:17px 0}.extra details+details{border-top:1px solid var(--line)}
     .extra summary{cursor:pointer;font-weight:750}.extra p{color:var(--muted);max-width:1100px;margin-bottom:0}
     footer{margin-top:24px;color:var(--muted);font-size:.84rem}
-    @media(max-width:950px){.layout{grid-template-columns:1fr}.guide-card{position:static}.chart-scroll{max-height:60vh}}
+    @media(max-width:950px){.layout{grid-template-columns:1fr}.guide-card{position:static}}
   </style>
 </head>
 <body>
@@ -46,19 +46,19 @@
   <div class="top">
     <div><div class="eyebrow">Interactive diagram guide</div><h1>AI Flow Chart Explainer</h1><p>Explore how a goal moves through an agent, its instructions and tools, and the systems it can reach.</p></div>
     <nav class="actions" aria-label="Original image">
-      <a href="/chart.png" target="_blank" rel="noopener">Open original PNG ↗</a>
-      <a href="/chart.png" download="AI Flow chart Tool.png">Download PNG</a>
+      <a href="./AI%20Flow%20chart%20Tool.png" target="_blank" rel="noopener">Open original PNG ↗</a>
+      <a href="./AI%20Flow%20chart%20Tool.png" download="AI Flow chart Tool.png">Download PNG</a>
     </nav>
   </div>
 </header>
 <main>
-  <p class="intro">Select a highlighted box in the chart or a topic button beside it. Scroll the chart to explore the full image.</p>
+  <p class="intro">Select a box in the chart or a topic button beside it. On narrow screens, swipe across the chart to explore the full image.</p>
   <div class="layout">
     <section class="chart-card" aria-label="Interactive AI flow chart">
       <div class="card-heading"><h2>How the pieces connect</h2><span>Click a box to learn more</span></div>
       <div class="chart-scroll">
         <div class="chart-canvas" id="chart">
-          <img src="/chart.png" alt="Flow chart showing a user goal going to a main agent, powered by an AI model and informed by context. Skills guide the agent. The agent can delegate to a subagent and call local or connected tools. Plugins package skills and connections. Connectors expose external capabilities through APIs. The agent combines work into a result for the user.">
+          <img src="./AI%20Flow%20chart%20Tool.png" alt="Flow chart showing a user goal going to a main agent, powered by an AI model and informed by context. Skills guide the agent. The agent can delegate to a subagent and call local or connected tools. Plugins package skills and connections. Connectors expose external capabilities through APIs. The agent combines work into a result for the user.">
         </div>
       </div>
       <div class="chart-note">Solid arrows show work and actions. Dashed arrows show guidance, support, or packaging.</div>

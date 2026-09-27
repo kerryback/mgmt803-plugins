@@ -12,6 +12,7 @@ def home() -> FileResponse:
     return FileResponse(HERE / "index.html", media_type="text/html")
 
 
+@app.get("/AI Flow chart Tool.png", include_in_schema=False)
 @app.get("/chart.png", include_in_schema=False)
 def chart() -> FileResponse:
     return FileResponse(HERE / "AI Flow chart Tool.png", media_type="image/png")
