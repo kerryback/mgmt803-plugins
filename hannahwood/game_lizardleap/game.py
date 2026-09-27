@@ -51,8 +51,9 @@ PAGE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lizard Leap</title>
+<!-- PWA -->
 <style>
   :root {
     --bg:#f6f1e9; --card:#fffaf2; --text:#2b2118; --muted:#7a6a5a; --line:#e6d9c6;
@@ -83,8 +84,13 @@ PAGE = """<!doctype html>
     }
   }
   * { box-sizing: border-box; }
-  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:16px;
-         background:var(--bg); color:var(--text); font:16px/1.5 system-ui, sans-serif; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; min-height:100vh; min-height:100dvh; display:grid; place-items:center;
+         /* keep clear of phone notches and rounded corners */
+         padding:max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+                 max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+         background:var(--bg); color:var(--text); font:16px/1.5 system-ui, sans-serif;
+         overscroll-behavior:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   .wrap { width:100%; max-width:760px; }
   .bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
   h1 { margin:0; font-size:1.25rem; }
@@ -98,10 +104,21 @@ PAGE = """<!doctype html>
   .mute .off, .mute[aria-pressed="true"] .on { display:none; }
   .mute[aria-pressed="true"] .off { display:block; }
   canvas { display:block; width:100%; aspect-ratio: 3 / 1; border:1px solid var(--line);
-           border-radius:14px; image-rendering: pixelated; }
+           border-radius:14px; image-rendering: pixelated;
+           /* taps are game input: no zooming, scrolling, text selection or long-press menus */
+           touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
   .hint { margin-top:10px; font-size:.85rem; color:var(--muted); text-align:center; }
   kbd { border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:0 6px;
         font:inherit; font-size:.8rem; }
+  .rotate-tip { display:none; margin:10px 0 0; font-size:.85rem; color:var(--muted); text-align:center; }
+  @media (orientation: portrait) and (pointer: coarse) { .rotate-tip { display:block; } }
+  /* sideways phone: drop the instructions and size the game to fit the screen height */
+  @media (max-height: 500px) {
+    body { padding-top:max(8px, env(safe-area-inset-top)); padding-bottom:max(8px, env(safe-area-inset-bottom)); }
+    .wrap { max-width:min(760px, calc((100vh - 64px) * 3)); max-width:min(760px, calc((100dvh - 64px) * 3)); }
+    .bar { margin-bottom:6px; }
+    .hint { display:none; }
+  }
 </style>
 </head>
 <body>
@@ -121,6 +138,7 @@ PAGE = """<!doctype html>
     </div>
   </div>
   <canvas id="game" width="900" height="300"></canvas>
+  <p class="rotate-tip">Turn your phone sideways for a bigger desert</p>
   <p class="hint"><kbd>Space</kbd> jump · <kbd>↓</kbd>/<kbd>S</kbd> duck · <kbd>M</kbd> mute · grab berries for a stacking score multiplier<br>
     Duck under birds instead of jumping them for bonus points<br>
     On a phone: tap the top half to jump, hold the bottom half to duck<br>
@@ -810,6 +828,9 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("keyup", e => { if (DUCK_KEYS.includes(e.code)) keyDuck = false; });
 window.addEventListener("blur", () => { keyDuck = touchDuck = false; });
+
+// iPhones only allow audio to start from the end of a tap, so unlock there too
+document.addEventListener("touchend", () => sfx.unlock(), { passive: true });
 
 // touch/mouse: top half of the game jumps, holding the bottom half ducks
 canvas.addEventListener("pointerdown", e => {

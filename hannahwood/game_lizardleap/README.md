@@ -4,6 +4,12 @@ A tiny pixel-art desert runner. You're a lizard. Jump the rocks, duck the birds,
 
 **▶ Play in your browser:** https://thehgremlin.github.io/LizardLeap/
 
+**📱 Phone app:** open the play link on your phone and install it. It gets its own icon, opens full screen, and works offline.
+- **iPhone:** open the link in **Safari** → Share → **Add to Home Screen**
+- **Android:** open the link in **Chrome** → ⋮ menu → **Install app** (or **Add to Home screen**)
+
+Turn your phone sideways for the full-size desert. On iPhone, the ring/silent switch also mutes the game.
+
 **⬇ Windows app:** grab `LizardLeap.exe` from the [latest release](https://github.com/TheHGremlin/LizardLeap/releases/latest). No Python needed. Windows will say "Windows protected your PC" because the app isn't signed; click **More info → Run anyway**.
 
 ## How to play
@@ -52,7 +58,7 @@ python build.py exe    # dist/LizardLeap.exe  (Windows, needs: pip install pyins
 
 (or double-click `build.bat`)
 
-- **HTML** – the same page with the best score kept in the browser instead of the server, so it runs anywhere with no Python. `docs/index.html` is what GitHub Pages serves.
+- **HTML** – the same page with the best score kept in the browser instead of the server, so it runs anywhere with no Python. `docs/` is what GitHub Pages serves: the page plus what makes it an installable phone app (a Progressive Web App): `manifest.webmanifest`, home-screen icons, and `sw.js`, a service worker that keeps an offline copy.
 - **EXE** – PyInstaller bundles Python, FastAPI and the game into one Windows app that starts the server and opens the browser. It saves the best score to `%APPDATA%\LizardLeap`.
 
 `game.py` is the only source file; everything else is generated from it.
