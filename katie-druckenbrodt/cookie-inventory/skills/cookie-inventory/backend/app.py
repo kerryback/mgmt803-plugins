@@ -2,13 +2,22 @@
 Girl Scout Cookie Inventory Manager — ABC Bakers troop of 27.
 
 Run with:
-    uvicorn cookie_inventory_app:app --host 0.0.0.0 --port 8000
+    uvicorn app:app --host 127.0.0.1 --port 8032
 
-Data lives in data/cookie_inventory.db (SQLite). All money/box figures shown
-on every page are computed live from that database — nothing is hardcoded.
+or, more simply, through the skill launcher, which builds the environment and
+opens the browser for you:
+
+    python3 ../scripts/skill_launch.py
+
+All money/box figures shown on every page are computed live from the SQLite
+database — nothing is hardcoded. The database and the API key live outside the
+plugin directory, under ~/.cookie-inventory/ (override with
+COOKIE_INVENTORY_HOME), so reinstalling or updating the plugin never touches
+the troop's records.
 """
 
 import json
+import os
 import sqlite3
 import uuid
 from contextlib import contextmanager
@@ -17,25 +26,60 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# env.txt lives one level up, in the workspace root shared by all the
-# student's apps, not inside this repo — so we point at it explicitly rather
-# than passing a bare filename that only resolves from the workspace root.
-load_dotenv(Path(__file__).resolve().parent.parent / "env.txt", override=True)
+HOME_DIR = Path(os.environ.get("COOKIE_INVENTORY_HOME", Path.home() / ".cookie-inventory")).expanduser()
+HOME_DIR.mkdir(parents=True, exist_ok=True)
+
+# The key may sit in the app's own home directory or in the folder the server was
+# started from. ~/.cookie-inventory/env.txt is this app's own config file, so it
+# overrides an ambient shell variable -- otherwise an unrelated OPENAI_API_KEY
+# already exported for some other tool would silently win, and every chat turn
+# would fail against OpenRouter with an auth error that looks like a bug here.
+for candidate in (HOME_DIR / "env.txt", HOME_DIR / ".env"):
+    if candidate.exists():
+        load_dotenv(candidate, override=True)
+for candidate in (Path.cwd() / "env.txt", Path.cwd() / ".env"):
+    if candidate.exists():
+        load_dotenv(candidate, override=False)
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from openai import OpenAI
 from pydantic import BaseModel
 
-DB_PATH = Path(__file__).parent / "data" / "cookie_inventory.db"
-DB_PATH.parent.mkdir(exist_ok=True)
+DB_PATH = Path(os.environ.get("COOKIE_INVENTORY_DB", HOME_DIR / "cookie_inventory.db")).expanduser()
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-chat_client = OpenAI(base_url="https://openrouter.ai/api/v1")  # reads OPENAI_API_KEY
 CHAT_MODEL = "openai/gpt-4o-mini"
+_chat_client = None
+
+
+def chat_client():
+    """Build the OpenRouter client on first use.
+
+    Deferred rather than built at import time so the inventory side of the app
+    — receiving stock, checkouts, booth sales, payments, the ledger — runs with
+    no API key at all. Only the "Ask Tony" chatbot needs one.
+
+    OPENROUTER_API_KEY is preferred over OPENAI_API_KEY, because the requests go
+    to OpenRouter: a plain OpenAI key that happens to be exported for something
+    else is not a valid credential here, and naming the variable separately keeps
+    the two from being confused.
+    """
+    global _chat_client
+    if _chat_client is None:
+        from openai import OpenAI
+        key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        if not key:
+            raise RuntimeError("No OpenRouter API key in OPENROUTER_API_KEY or OPENAI_API_KEY.")
+        _chat_client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=key)
+    return _chat_client
+
 
 app = FastAPI(title="Troop Cookie Inventory (ABC Bakers)")
-app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+
+STATIC_DIR = Path(__file__).parent / "static"
+STATIC_DIR.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # ABC Bakers lineup for this troop, per the student (naming differs from
 # Little Brownie Bakers, e.g. "Caramel deLites" not "Samoas"). No
@@ -105,11 +149,17 @@ def init_db():
 init_db()
 
 
-# Binx, the troop's lop-eared rabbit mascot.
-MASCOT_SVG = """
+# Binx, the troop's lop-eared rabbit mascot. The photo is the troop's own and
+# is not distributed with the plugin, so the header simply drops the image when
+# static/binx.jpeg is absent. Drop any square photo in at that path to get it
+# back.
+if (STATIC_DIR / "binx.jpeg").exists():
+    MASCOT_SVG = """
 <img src="/static/binx.jpeg" alt="Binx the lop-eared rabbit, troop mascot" width="76" height="76"
      style="border-radius: 12px; object-fit: cover; box-shadow: 0 2px 6px rgba(0,0,0,.15);">
 """
+else:
+    MASCOT_SVG = ""
 
 
 def layout(title: str, body: str) -> HTMLResponse:
@@ -250,7 +300,7 @@ def dashboard():
 
     body = f"""
     {warn}
-    <p class="muted">Troop roster: {n_scouts} scouts. All figures below are computed live from the transaction ledger in data/cookie_inventory.db.</p>
+    <p class="muted">Troop roster: {n_scouts} scouts. All figures below are computed live from the transaction ledger in {DB_PATH}.</p>
     <h2>Current Troop Stock (boxes on hand)</h2>
     <table>
       <tr><th>Variety</th><th>Boxes on hand</th><th>Price/box</th></tr>
@@ -765,8 +815,18 @@ def get_session(request: Request) -> tuple[str, list]:
 
 
 def run_chat_turn(history: list) -> str:
+    try:
+        client = chat_client()
+    except Exception:
+        return (
+            "Ay, I got no phone line here. Whoever set this thing up needs a key "
+            "from openrouter.ai — put OPENROUTER_API_KEY=sk-or-... in "
+            "~/.cookie-inventory/env.txt and restart the app. And it's gotta be an "
+            "OpenRouter key, not an OpenAI one; they ain't the same thing. "
+            "Everything else in here works fine without me."
+        )
     for _ in range(5):
-        completion = chat_client.chat.completions.create(model=CHAT_MODEL, messages=history, tools=TOOLS)
+        completion = client.chat.completions.create(model=CHAT_MODEL, messages=history, tools=TOOLS)
         msg = completion.choices[0].message
         if msg.tool_calls:
             history.append({

@@ -1,0 +1,8 @@
+{
+  "name": "cookie-inventory",
+  "description": "Launch a local Girl Scout cookie inventory manager for an ABC Bakers troop: receive stock, check boxes out to scouts and back, record booth sales and payments, and read a running ledger, with every box and dollar figure computed live from a SQLite database. Includes a parent-facing chatbot, in Tony Soprano's voice, that answers balance questions and checks out more boxes using only the database.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Katie Druckenbrodt"
+  }
+}

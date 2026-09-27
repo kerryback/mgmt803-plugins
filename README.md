@@ -1,9 +1,9 @@
 # mgmt803-plugins
 
-A Claude Code plugin marketplace for MGMT 803 at Rice Business. Twenty-six
+A Claude Code plugin marketplace for MGMT 803 at Rice Business. Twenty-eight
 plugins: scheduling and planning agents, market-data briefs, a job scout,
-teaching tools, app scaffolds, and a handful of browser games — most of them
-built by the class.
+teaching tools, app scaffolds, a couple of single-purpose apps, and a handful of
+browser games — most of them built by the class.
 
 ## Install
 
@@ -32,6 +32,7 @@ restarts.
 | `syllabus-to-trello@mgmt803` | bb151-pixel | Turns syllabi into dated Trello cards and calendar reminders, with personal targets set ahead of each official deadline. Labels derived dates as derived, flags missing or contradictory ones, and shows you the whole plan before creating anything. |
 | `smithers@mgmt803` | Kerry Back | A local email and calendar desk over Gmail and Calendar. Drafts replies for you to send; never sends mail or deletes events itself. |
 | `countdown@mgmt803` | jessica-george | A countdown page with no fixed look — Claude designs the colors, emoji, font and particle effect live for whatever occasion you type in. Needs an Anthropic API key. |
+| `weekly-battle-plan@mgmt803` | Hannah Wood | A dark-mode drag-and-drop to-do list showing one set of tasks either by section or by day, with three-state checkboxes, overdue tasks that roll onto today, custom tags and a Done Dumpster. One HTML file: open it locally, or publish it as a private artifact to sync across your devices. |
 
 ## Markets and career
 
@@ -53,6 +54,15 @@ restarts.
 | `ai-flow-chart-explainer@mgmt803` | Kerry Back | A local interactive guide to how agents, skills, tools, plugins, connectors, APIs, and external systems connect. Click chart regions for explanations; open or download the original PNG. |
 | `math-atelier@mgmt803` | Jennifer Lane | A self-contained page for math practice. One HTML file, nothing to install. |
 | `piano-transcriber@mgmt803` | Caitlin Lorenz | Turns a song — a link, a search query, or an uploaded file — into piano sheet music at easy/medium/hard difficulty, with in-browser playback and a labeled PDF download. Runs entirely locally; no API key needed. |
+
+## Single-purpose apps
+
+Each of these runs one real job locally rather than generating code for you.
+
+| Plugin | Author | What it does |
+| --- | --- | --- |
+| `cookie-inventory@mgmt803` | Katie Druckenbrodt | Runs a Girl Scout cookie season for an ABC Bakers troop: stock by variety, boxes checked out to each of 27 scouts, booth sales, payments, and a full ledger. Every box and dollar figure is recomputed from the transaction ledger, so there is no stored total to drift. Ships a parent-facing chatbot, in Tony Soprano's voice, that may only cite numbers it looked up — that part needs an OpenRouter key; nothing else does. |
+| `skewt-forecast@mgmt803` | aarontdenson-creator | An interactive 24-hour Skew-T for an airport or a coordinate: temperature and dewpoint in Celsius, winds in knots, cursor altitude and pressure, and wind barbs oriented to meteorological from-heading. Uses Open-Meteo, no API key for personal use. |
 
 ## App scaffolds
 
@@ -86,6 +96,7 @@ at it:
 kerryback/critique
 hannahwood/game_lizardleap
 jack-peterson/f1-racer
+katie-druckenbrodt/cookie-inventory
 ...
 ```
 

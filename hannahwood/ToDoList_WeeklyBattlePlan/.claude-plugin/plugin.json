@@ -1,0 +1,8 @@
+{
+  "name": "weekly-battle-plan",
+  "description": "A dark-mode drag-and-drop to-do list that shows one set of tasks two ways, by section or by day, with three-state checkboxes, overdue roll-over onto today, custom tags and a Done Dumpster. One self-contained HTML file: open it straight from disk, or publish it as a private Claude artifact to sync your tasks across your devices.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Hannah Wood"
+  }
+}

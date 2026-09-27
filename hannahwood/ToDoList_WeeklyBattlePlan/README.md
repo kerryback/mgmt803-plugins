@@ -6,6 +6,16 @@ A dark-mode to-do list with drag and drop. It shows the same tasks two ways: by 
 
 It's one HTML file, `battle-plan.html`, with nothing to install.
 
+## As a plugin
+
+```
+/plugin marketplace add kerryback/mgmt803-plugins
+/plugin install weekly-battle-plan@mgmt803
+```
+
+Start a fresh session, then say `/weekly-battle-plan` and Claude will open the
+file locally or publish you a synced copy, whichever you want.
+
 ## Features
 
 - **Two views of one list:** switch between **Sections** and **Days** at the top. Every task has a section and, optionally, a day. You set both in the add/edit form, which has shortcuts for Today, Tomorrow and No day.
@@ -27,6 +37,7 @@ Your tasks are saved **in that browser on that device only**. They won't show up
 Publish your own copy as a Claude artifact, and it will sync anywhere you're signed in to Claude.
 
 1. Open Claude Code (desktop app or CLI) in a folder that has `battle-plan.html` in it.
+   With the plugin installed you can be anywhere — just say `/weekly-battle-plan`.
 2. Ask:
    > Publish battle-plan.html as a private artifact with the `db` and `user` capabilities.
 3. Open the link Claude gives you. That's your personal, synced Battle Plan.

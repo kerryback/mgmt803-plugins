@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "skewt-forecast",
   "description": "Build or launch an interactive 24-hour forecast Skew-T app for airports or coordinates. Shows Celsius temperature and dewpoint, winds in knots, cursor altitude and pressure, and wind barbs oriented to their meteorological from-heading.",
   "version": "0.1.0",

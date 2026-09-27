@@ -118,7 +118,7 @@
     {
       "name": "voiceover",
       "source": "./kerryback/voiceover",
-      "description": "Turn a slide deck into a narrated MP4 video plus a transcript. Give it the PDF of your slides \u2014 named on the command line or uploaded in the app \u2014 and Claude writes the narration; a local app shows each slide beside its script, where you edit it, pick an ElevenLabs voice, and generate. The MP4 + transcript are saved to the project folder."
+      "description": "Turn a slide deck into a narrated MP4 video plus a transcript. Give it the PDF of your slides — named on the command line or uploaded in the app — and Claude writes the narration; a local app shows each slide beside its script, where you edit it, pick an ElevenLabs voice, and generate. The MP4 + transcript are saved to the project folder."
     },
     {
       "name": "wolverine-brief",
@@ -134,6 +134,16 @@
       "name": "piano-transcriber",
       "source": "./caitlinlorenz/piano-transcriber",
       "description": "Turn a song into piano sheet music. Give it a SoundCloud/YouTube link, a search query, or an uploaded audio file, and a local app separates out the melody and bass, transcribes the notes, and arranges them for two hands at easy/medium/hard difficulty. Preview each arrangement, play it back, and download the labeled PDF. No API key needed."
+    },
+    {
+      "name": "weekly-battle-plan",
+      "source": "./hannahwood/ToDoList_WeeklyBattlePlan",
+      "description": "A dark-mode drag-and-drop to-do list that shows one set of tasks two ways, by section or by day, with three-state checkboxes, overdue roll-over onto today, custom tags and a Done Dumpster. One self-contained HTML file: open it straight from disk, or publish it as a private Claude artifact to sync your tasks across your devices."
+    },
+    {
+      "name": "cookie-inventory",
+      "source": "./katie-druckenbrodt/cookie-inventory",
+      "description": "Launch a local Girl Scout cookie inventory manager for an ABC Bakers troop: receive stock, check boxes out to scouts and back, record booth sales and payments, and read a running ledger, with every box and dollar figure computed live from a SQLite database. Includes a parent-facing chatbot, in Tony Soprano's voice, that answers balance questions and checks out more boxes using only the database."
     }
   ]
 }
