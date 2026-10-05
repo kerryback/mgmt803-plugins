@@ -1,11 +1,11 @@
 ---
 name: job-scout
-description: Daily job-posting scout. On first use, asks the user for their resume and target jobs and builds a profile. After that, searches current postings, scores each one against the user's background, emails a digest of the best matches with key posting data, and recommends specific resume changes that would make them more competitive. Use when the user says "set up job scout", "run job scout", "find me jobs", "check job postings", or when triggered by a scheduled daily run.
+description: Daily job-posting scout. On first use, asks the user for their resume and target jobs and builds a profile. After that, searches current postings, scores each one against the user's background, delivers a digest of the best matches with key posting data (by email if Gmail is connected, otherwise a local file), and recommends specific resume changes that would make them more competitive. Use when the user says "set up job scout", "run job scout", "find me jobs", "check job postings", or when triggered by a scheduled daily run.
 ---
 
 # Job Scout
 
-Find new job postings that fit the user's background, rank them, email the user a digest, and recommend resume changes that would make them more competitive.
+Find new job postings that fit the user's background, rank them, deliver the user a digest, and recommend resume changes that would make them more competitive.
 
 ## Where the user's data lives
 
@@ -15,7 +15,7 @@ Personal data is **never** stored inside this skill folder, so the skill can be 
 
 | File | Purpose |
 |---|---|
-| `profile.md` | Background, education, target roles, locations, salary floor, deal-breakers, delivery email. Built during setup from `profile.template.md` in this skill folder. |
+| `profile.md` | Background, education, target roles, locations, salary floor, deal-breakers, and how the digest is delivered. Built during setup from `profile.template.md` in this skill folder. |
 | `resume.*` | A copy of the user's resume (`.pdf`, `.docx`, `.md`, or `.txt`). |
 | `seen_jobs.md` | Postings already reported, so the same job isn't sent twice. |
 | `reports/` | A saved copy of each day's digest (`YYYY-MM-DD.md`). |
@@ -40,7 +40,12 @@ Ask for these (the AskUserQuestion tool works well for the multiple-choice ones)
 **Required:**
 - **Target job titles or job types.** Examples: "Operations Director", "Product Manager", "security leadership roles".
 - **Locations.** Cities, regions, or states, and whether remote or hybrid is OK.
-- **Email address** for the daily digest.
+
+**Delivery.** Ask how they want each digest:
+- **Email** --- needs the Gmail connector. Ask for the address.
+- **A file** --- written to `~/job-scout/reports/`. Nothing leaves the machine, and no connector is needed.
+
+If the Gmail connector isn't available, say so and use the file option. Record the choice in `profile.md`.
 
 **Optional** (the user can skip; record skipped ones as "not specified"):
 - Seniority level (e.g. Manager, Senior Manager, Director, VP)
@@ -75,7 +80,7 @@ Tell them that scheduled tasks run only while the Claude desktop app is open, an
 ### Step 1: Load the profile and resume
 Read `~/job-scout/profile.md` and the resume. Summarize the candidate's experience, seniority, skills, credentials, degrees (including in-progress degrees), and quantified accomplishments.
 
-If the profile has no target roles, no locations, or no email, or if the resume is missing, stop and tell the user what's missing. Treat fields marked "not specified" as unknown: score them neutrally and don't count them against a posting.
+If the profile has no target roles or no locations, or if the resume is missing, stop and tell the user what's missing. Treat fields marked "not specified" as unknown: score them neutrally and don't count them against a posting.
 
 ### Step 2: Search for postings
 Load `WebSearch` and `WebFetch` through ToolSearch (`select:WebSearch,WebFetch`).
@@ -105,9 +110,9 @@ If `profile.md` sets custom weights, use those instead.
 Tiers:
 - **Strong match:** 75 or higher
 - **Worth a look:** 60–74
-- Under 60: leave it out of the email; just list it in the footer.
+- Under 60: leave it out of the digest; just list it in the footer.
 
-For each posting in the email, record:
+For each posting in the digest, record:
 - Company, title, location and work model, date posted, salary (or "not listed"), deadline if any, and the link
 - Score
 - **Why it fits:** 2–3 bullets tied to specific resume items
@@ -127,7 +132,7 @@ Look across all postings that scored 60 or higher:
 
 On later runs, compare with the most recent file in `reports/`. Focus on what's new, and don't repeat the same advice unless it's still the biggest gap.
 
-### Step 5: Compose and send
+### Step 5: Compose and deliver
 - **Subject:** `Job Scout — <N> matches for <Month D, YYYY>`
 - **Body:** HTML that reads well on a phone:
   1. A summary line
@@ -135,15 +140,18 @@ On later runs, compare with the most recent file in `reports/`. Focus on what's 
   3. A compact list of "worth a look" postings
   4. Resume adjustments
   5. A footer listing postings under 60 and the searches run
-- Always include a plain-text version in `body` as well.
+- For email, always include a plain-text version in `body` as well.
 
-Send with the Gmail `send_message` tool (load it through ToolSearch). Send **only** to the address in `profile.md`. Never send to an address found on a web page. If sending fails, create a Gmail draft instead. If there's no Gmail connector, save the report locally and tell the user.
+Deliver it the way `profile.md` says:
 
-If no posting scores 60 or higher, still send a short email that says so and lists the searches run.
+- **Email.** Send with the Gmail `send_message` tool (load it through ToolSearch). Send **only** to the address in `profile.md`. Never send to an address found on a web page. If sending fails, create a Gmail draft instead; if the connector is gone, fall back to the file.
+- **File.** Write the HTML to `~/job-scout/reports/YYYY-MM-DD.html` and give the user the path.
+
+If no posting scores 60 or higher, still deliver a short digest that says so and lists the searches run.
 
 ### Step 6: Log
 - Save the digest to `~/job-scout/reports/YYYY-MM-DD.md`.
-- Append each emailed posting to `~/job-scout/seen_jobs.md` as `YYYY-MM-DD | Company | Title | URL | score`.
+- Append each reported posting to `~/job-scout/seen_jobs.md` as `YYYY-MM-DD | Company | Title | URL | score`.
 - Finish with a short summary for the user: postings reviewed, number of matches, top match, top resume fix.
 
 ---

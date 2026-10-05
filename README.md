@@ -40,7 +40,7 @@ restarts.
 | --- | --- | --- |
 | `wolverine-brief@mgmt803` | Cspiteri33 | A weekly cross-asset brief in Wolverine's voice: the last week of stocks, Treasuries, the dollar, gold and oil from Yahoo Finance, with a blunt take on the biggest moves and how they moved relative to each other. Builds its own virtualenv; no API key needed. |
 | `doom-desk@mgmt803` | Hannah Wood | The same five ETFs, narrated as pessimistically as possible. Pulls the real returns and has Claude describe the carnage, citing only the actual numbers. Needs an Anthropic API key. |
-| `job-scout@mgmt803` | bazingasc | Builds a profile from your resume and target roles, searches current postings, scores each against your background, emails a digest of the best matches, and recommends specific resume changes. Personal data stays in `~/job-scout/`. Needs a Gmail connector with send or compose scope. |
+| `job-scout@mgmt803` | bazingasc | Builds a profile from your resume and target roles, searches current postings, scores each against your background, delivers a digest of the best matches, and recommends specific resume changes. Personal data stays in `~/job-scout/`. Emails the digest if the Gmail connector is on; otherwise writes it to `~/job-scout/reports/`. |
 
 ## Documents, slides and teaching
 

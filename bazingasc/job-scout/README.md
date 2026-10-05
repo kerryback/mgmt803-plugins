@@ -1,10 +1,10 @@
 # Job Scout: a Claude skill
 
-Job Scout searches current job postings every day and scores each one against your resume and target jobs. It emails you the best matches with the key details: company, title, pay, location, date posted, link, why it fits, and the gaps. It also tells you exactly how to adjust your resume to compete better.
+Job Scout searches current job postings every day and scores each one against your resume and target jobs. It delivers the best matches --- by email, or as a file in `~/job-scout/reports/` if you would rather not connect Gmail --- with the key details: company, title, pay, location, date posted, link, why it fits, and the gaps. It also tells you exactly how to adjust your resume to compete better.
 
 ## What you need
 - Claude Code or the Claude desktop app (Code tab)
-- The **Gmail connector** turned on, so it can email you. Without it, reports are saved locally instead.
+- Optionally, the **Gmail connector**, if you want the digest emailed. Without it, reports are saved to `~/job-scout/reports/`.
 - Your resume (PDF, Word, or text)
 
 ## Install
@@ -25,12 +25,12 @@ Tell Claude:
 It will ask you to:
 1. **Upload your resume** (a file path, drag-and-drop, or pasted text)
 2. **List your target jobs and locations**, plus optional details such as seniority, industries, target companies, salary floor, and deal-breakers
-3. Give the **email address** for the daily digest
+3. Choose how to get the digest --- **email** (needs the Gmail connector) or a **file** in `~/job-scout/reports/`
 
 It then builds your profile, shows you a summary to confirm, and offers a test run and a daily schedule.
 
 ## Privacy
-Your resume, profile, and reports are stored in `~/job-scout/` in your home folder, **not** in the skill folder. That means you can share the skill folder without sharing your personal data. Emails go only to the address you give it.
+Your resume, profile, and reports are stored in `~/job-scout/` in your home folder, **not** in the skill folder. That means you can share the skill folder without sharing your personal data. If you choose email, it goes only to the address you give it.
 
 ## Everyday use
 - "Run job scout": run it now

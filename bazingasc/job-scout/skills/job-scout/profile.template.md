@@ -4,7 +4,8 @@ Created by the job-scout setup and stored at `~/job-scout/profile.md`. Edit it a
 Fields marked "not specified" are treated as unknown and don't count against a posting.
 
 ## Delivery
-- Send digest to: <email>
+- Method (email / file):
+- Send digest to: <email --- only if method is email>
 
 ## Professional background
 - Current / most recent title:
