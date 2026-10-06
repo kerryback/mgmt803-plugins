@@ -1,6 +1,6 @@
 {
   "name": "lizard-leap",
-  "description": "Launch Lizard Leap, a pixel-art desert runner served by a local FastAPI app: jump the rocks, duck the birds for a bonus, eat berries for a score multiplier. Also builds a standalone HTML or Windows exe.",
+  "description": "Launch Lizard Leap, a pixel-art desert runner served by a local FastAPI app: jump the rocks, duck the birds for a bonus, eat berries for a score multiplier. Installs on a phone as a PWA -- its own icon, full screen, works offline -- and also builds a standalone HTML page or a Windows exe.",
   "version": "1.0.0",
   "author": {
     "name": "Hannah Wood"

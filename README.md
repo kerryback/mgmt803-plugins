@@ -32,7 +32,7 @@ restarts.
 | `syllabus-to-trello@mgmt803` | bb151-pixel | Turns syllabi into dated Trello cards and calendar reminders, with personal targets set ahead of each official deadline. Labels derived dates as derived, flags missing or contradictory ones, and shows you the whole plan before creating anything. |
 | `smithers@mgmt803` | Kerry Back | A local email and calendar desk over Gmail and Calendar. Drafts replies for you to send; never sends mail or deletes events itself. |
 | `countdown@mgmt803` | jessica-george | A countdown page with no fixed look — Claude designs the colors, emoji, font and particle effect live for whatever occasion you type in. Needs an Anthropic API key. |
-| `weekly-battle-plan@mgmt803` | Hannah Wood | A dark-mode drag-and-drop to-do list showing one set of tasks either by section or by day, with three-state checkboxes, overdue tasks that roll onto today, custom tags and a Done Dumpster. One HTML file: open it locally, or publish it as a private artifact to sync across your devices. |
+| `weekly-battle-plan@mgmt803` | Hannah Wood | A dark-mode drag-and-drop to-do list showing one set of tasks either by section or by day, with three-state checkboxes, overdue tasks that roll onto today, custom tags, a Done Dumpster, a weekly progress bar and a Stats view. One HTML file: open it locally, or publish it as a private artifact to sync across your devices. |
 
 ## Markets and career
 
@@ -81,7 +81,7 @@ themselves.
 | Plugin | Author | What it does |
 | --- | --- | --- |
 | `penguoom@mgmt803` | tfensign | A Doom-style FPS starring a penguin across ten winter sectors. One self-contained HTML file: canvas raycaster, Web Audio sound and music, no build step. |
-| `lizard-leap@mgmt803` | Hannah Wood | A pixel-art desert runner. Jump the rocks, duck the birds for a bonus, eat berries for a score multiplier. Also builds a standalone HTML page or a Windows exe. |
+| `lizard-leap@mgmt803` | Hannah Wood | A pixel-art desert runner. Jump the rocks, duck the birds for a bonus, eat berries for a score multiplier. Installs on a phone as a PWA, and also builds a standalone HTML page or a Windows exe. |
 | `mario@mgmt803` | husaaa17 | World 1-1, a side-scrolling platformer served by a local FastAPI app. |
 | `f1-racer@mgmt803` | Jack Peterson | A browser racing game served by a local FastAPI app. |
 | `flappy-bird@mgmt803` | Jack Peterson | Sammy the Owl, a tap-to-fly arcade game in Rice blue. |
